@@ -1,5 +1,8 @@
 include_guard(GLOBAL)
 
+# Inside function(), CMAKE_CURRENT_LIST_DIR is the caller's CMakeLists directory, not this file's.
+get_filename_component(_MB_PRE_COMMIT_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" DIRECTORY)
+
 function(mb_pre_commit_setup)
     set(options)
     set(oneValueArgs
@@ -8,6 +11,7 @@ function(mb_pre_commit_setup)
         PRE_COMMIT_MODE
         PRE_COMMIT_VERSION
         PRE_COMMIT_VENV_DIR
+        PRE_COMMIT_INSTALL_EXAMPLE_CONFIG
     )
     cmake_parse_arguments(PC "${options}" "${oneValueArgs}" "" ${ARGN})
 
@@ -29,6 +33,10 @@ function(mb_pre_commit_setup)
 
     if(NOT PC_PRE_COMMIT_VENV_DIR)
         set(PC_PRE_COMMIT_VENV_DIR "${PC_PROJECT_SOURCE_DIR}/.venv")
+    endif()
+
+    if(NOT DEFINED PC_PRE_COMMIT_INSTALL_EXAMPLE_CONFIG)
+        set(PC_PRE_COMMIT_INSTALL_EXAMPLE_CONFIG ON)
     endif()
 
     if(NOT IS_ABSOLUTE "${PC_PROJECT_SOURCE_DIR}")
@@ -61,7 +69,8 @@ function(mb_pre_commit_setup)
     find_package(Git QUIET)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
-    set(_tool_module_dir "${CMAKE_CURRENT_LIST_DIR}")
+    set(_tool_module_dir "${_MB_PRE_COMMIT_CMAKE_DIR}")
+    set(_configs_root "${_tool_module_dir}/../configs")
     set(_hook_template "${_tool_module_dir}/pre-commit.in")
     set(_generated_hook "${PC_PROJECT_BINARY_DIR}/pre-commit")
 
@@ -88,12 +97,24 @@ function(mb_pre_commit_setup)
         message(FATAL_ERROR "mb_pre_commit_setup: invalid PRE_COMMIT_MODE='${PC_PRE_COMMIT_MODE}', expected CUSTOM or NATIVE")
     endif()
 
-    # Re-run configure if the hook template changes.
+    # Re-run configure if the hook template or shipped example configs change.
     set_property(
         DIRECTORY APPEND PROPERTY
         CMAKE_CONFIGURE_DEPENDS
         "${_hook_template}"
     )
+    file(
+        GLOB_RECURSE _example_config_deps
+        CONFIGURE_DEPENDS
+        "${_configs_root}/v*/.pre-commit-config.yaml"
+    )
+    if(_example_config_deps)
+        set_property(
+            DIRECTORY APPEND PROPERTY
+            CMAKE_CONFIGURE_DEPENDS
+            ${_example_config_deps}
+        )
+    endif()
 
     # Forward-slash path works better in generated shell script, including Git Bash on Windows.
     file(TO_CMAKE_PATH "${_venv_python}" PRE_COMMIT_VENV_PYTHON_FOR_HOOK)
@@ -180,5 +201,36 @@ function(mb_pre_commit_setup)
         endif()
 
         message(STATUS "Installed native pre-commit hook in ${PC_PROJECT_SOURCE_DIR}")
+    endif()
+
+    if(PC_PRE_COMMIT_INSTALL_EXAMPLE_CONFIG)
+        string(REGEX MATCH "^([0-9]+)" _pc_major_match "${PC_PRE_COMMIT_VERSION}")
+        if(NOT _pc_major_match)
+            message(FATAL_ERROR "mb_pre_commit_setup: could not parse major from PRE_COMMIT_VERSION='${PC_PRE_COMMIT_VERSION}'")
+        endif()
+        set(_pc_major "${CMAKE_MATCH_1}")
+
+        file(GLOB _versioned_config_dirs LIST_DIRECTORIES true "${_configs_root}/v*")
+        set(_best_config_n 0)
+        set(_best_config_src "")
+        foreach(_vdir ${_versioned_config_dirs})
+            get_filename_component(_vname "${_vdir}" NAME)
+            if(_vname MATCHES "^v([0-9]+)$")
+                set(_vn "${CMAKE_MATCH_1}")
+                if(_vn GREATER_EQUAL 1 AND _vn LESS_EQUAL _pc_major AND _vn GREATER _best_config_n)
+                    set(_candidate "${_vdir}/.pre-commit-config.yaml")
+                    if(EXISTS "${_candidate}")
+                        set(_best_config_n "${_vn}")
+                        set(_best_config_src "${_candidate}")
+                    endif()
+                endif()
+            endif()
+        endforeach()
+
+        if(_best_config_src)
+            set(_config_dest "${PC_PROJECT_SOURCE_DIR}/.pre-commit-config.yaml")
+            configure_file("${_best_config_src}" "${_config_dest}" COPYONLY)
+            message(STATUS "Installed example pre-commit config (configs/v${_best_config_n}) -> ${_config_dest}")
+        endif()
     endif()
 endfunction()

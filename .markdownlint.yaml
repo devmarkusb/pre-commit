@@ -1,0 +1,8 @@
+# Used by markdownlint-cli (see .pre-commit-config.yaml). Keeps technical READMEs
+# with long URLs, tables, and unannotated fences from failing the hook.
+default: true
+MD013: false
+MD022: false
+MD040: false
+MD031: false
+MD012: false

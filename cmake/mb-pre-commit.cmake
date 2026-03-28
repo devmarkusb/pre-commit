@@ -103,18 +103,14 @@ function(mb_pre_commit_setup)
         CMAKE_CONFIGURE_DEPENDS
         "${_hook_template}"
     )
+    # CONFIGURE_DEPENDS registers these files with the build tool so CMake re-runs when
+    # they change. Do not also append them to CMAKE_CONFIGURE_DEPENDS — that duplicates
+    # the same outputs in Ninja ("defined as an output multiple times").
     file(
         GLOB_RECURSE _example_config_deps
         CONFIGURE_DEPENDS
         "${_configs_root}/v*/.pre-commit-config.yaml"
     )
-    if(_example_config_deps)
-        set_property(
-            DIRECTORY APPEND PROPERTY
-            CMAKE_CONFIGURE_DEPENDS
-            ${_example_config_deps}
-        )
-    endif()
 
     # Forward-slash path works better in generated shell script, including Git Bash on Windows.
     file(TO_CMAKE_PATH "${_venv_python}" PRE_COMMIT_VENV_PYTHON_FOR_HOOK)

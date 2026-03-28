@@ -89,4 +89,3 @@ Configure is set to **re-run** if `pre-commit.in` changes (`CMAKE_CONFIGURE_DEPE
 ### `NATIVE`
 
 Runs `python -m pre_commit install --install-hooks --hook-type pre-commit` from `PROJECT_SOURCE_DIR`, using the same venv. You get upstream’s installed hook and default behavior instead of the custom staged-files / retry script.
-

@@ -1,0 +1,78 @@
+#!/usr/bin/env sh
+set -eu
+
+die() {
+    printf '%s\n' "pre-commit hook: $*" >&2
+    exit 1
+}
+
+info() {
+    printf '%s\n' "pre-commit hook: $*"
+}
+
+git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root" || die "failed to enter repository root"
+
+if [ -x "@PRE_COMMIT_VENV_PYTHON_FOR_HOOK@" ]; then
+    PRE_COMMIT_PYTHON="@PRE_COMMIT_VENV_PYTHON_FOR_HOOK@"
+elif command -v python3 >/dev/null 2>&1; then
+    PRE_COMMIT_PYTHON="python3"
+elif command -v python >/dev/null 2>&1; then
+    PRE_COMMIT_PYTHON="python"
+else
+    die "python not found; re-run CMake configure"
+fi
+
+[ -f ".pre-commit-config.yaml" ] || exit 0
+
+staged_file_list="$(mktemp "${TMPDIR:-/tmp}/pre-commit-staged-files.XXXXXX")"
+cleanup() {
+    rm -f "$staged_file_list"
+}
+trap cleanup EXIT HUP INT TERM
+
+git diff --cached --name-only --diff-filter=ACMR -z |
+while IFS= read -r -d '' path; do
+    if [ -f "$path" ]; then
+        printf '%s\0' "$path" >> "$staged_file_list"
+    fi
+done
+
+[ -s "$staged_file_list" ] || exit 0
+
+run_pre_commit_on_staged_files() {
+    xargs -0 "$PRE_COMMIT_PYTHON" -m pre_commit run --hook-stage pre-commit --files < "$staged_file_list"
+}
+
+restage_existing_files() {
+    restage_list="$(mktemp "${TMPDIR:-/tmp}/pre-commit-restage.XXXXXX")" || exit 1
+    trap 'rm -f "$staged_file_list" "$restage_list"' EXIT HUP INT TERM
+
+    xargs -0 -I '{}' sh -c '
+        if [ -f "$1" ]; then
+            printf "%s\0" "$1"
+        fi
+    ' sh '{}' < "$staged_file_list" > "$restage_list"
+
+    if [ -s "$restage_list" ]; then
+        xargs -0 git add -- < "$restage_list" || die "failed to re-stage files modified by pre-commit"
+    fi
+
+    rm -f "$restage_list"
+    trap cleanup EXIT HUP INT TERM
+}
+
+if run_pre_commit_on_staged_files; then
+    exit 0
+fi
+
+restage_existing_files
+
+if run_pre_commit_on_staged_files; then
+    info "auto-fixed staged files with pre-commit, updated the index, and continuing commit"
+    exit 0
+fi
+
+die "pre-commit checks failed"

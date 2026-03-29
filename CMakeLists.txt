@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(pre-commit LANGUAGES NONE)
+project(mb.pre-commit LANGUAGES NONE)
 
 # Loaded via FetchContent_MakeAvailable: defines mb_pre_commit_setup() in the parent scope.
 include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/mb-pre-commit.cmake")

@@ -141,6 +141,22 @@ Configure is set to **re-run** if `pre-commit.in` changes (`CMAKE_CONFIGURE_DEPE
 Runs `python -m pre_commit install --install-hooks --hook-type pre-commit` from `PROJECT_SOURCE_DIR`, using the same
 venv. You get upstream’s installed hook and default behavior instead of the custom staged-files / retry script.
 
+## Contributing and releases
+
+Maintainers can create an annotated release tag and push it to `origin` with [`scripts/git-tag`](scripts/git-tag): it
+refuses a dirty working tree or an existing tag, then runs `git tag -a` with message `Release <tag>` and `git push
+origin <tag>` (use `--no-push` for a local tag only). Example:
+
+```bash
+./scripts/git-tag v1.2.0
+```
+
+**Consumer projects:** this helper is not wired through CMake or FetchContent; it is a small standalone script (stdlib
+only). If you want the same workflow downstream, copy it into your repository, vendor it under `scripts/`, or fetch a
+pinned revision from this repo’s raw URL and run it from your `PATH`. A [`git
+alias`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-alias) pointing at a checked-out or local copy
+is another lightweight option.
+
 <!-- Badge targets (reference links keep the intro row within MD013 line length). -->
 
 [badge-ci]: https://github.com/devmarkusb/pre-commit/actions/workflows/ci.yml/badge.svg?branch=main

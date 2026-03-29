@@ -1,11 +1,9 @@
 include_guard(GLOBAL)
 
-# Inside function(), CMAKE_CURRENT_LIST_DIR is the caller's CMakeLists directory, not this file's.
-get_filename_component(
-    _MB_PRE_COMMIT_CMAKE_DIR
-    "${CMAKE_CURRENT_LIST_FILE}"
-    DIRECTORY
-)
+# Directory of this list file (cmake/). For CMake < 3.17, mb_pre_commit_setup() falls back to this.
+# Do not derive from CMAKE_CURRENT_LIST_FILE: in some FetchContent layouts its DIRECTORY is empty,
+# which breaks paths like ${_dir}/pre-commit.in -> /pre-commit.in.
+set(_MB_PRE_COMMIT_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
 function(mb_pre_commit_setup)
     set(options)
@@ -78,7 +76,13 @@ function(mb_pre_commit_setup)
     find_package(Git QUIET)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
-    set(_tool_module_dir "${_MB_PRE_COMMIT_CMAKE_DIR}")
+    # Inside function(), CMAKE_CURRENT_LIST_DIR is the caller's file — use the directory of
+    # this module's list file (CMake 3.17+), else file-scope _MB_PRE_COMMIT_CMAKE_DIR.
+    if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.17")
+        set(_tool_module_dir "${CMAKE_CURRENT_FUNCTION_LIST_DIR}")
+    else()
+        set(_tool_module_dir "${_MB_PRE_COMMIT_CMAKE_DIR}")
+    endif()
     set(_configs_root "${_tool_module_dir}/../configs")
     set(_hook_template "${_tool_module_dir}/pre-commit.in")
     set(_generated_hook "${PC_PROJECT_BINARY_DIR}/pre-commit")

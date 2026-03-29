@@ -207,6 +207,25 @@ function(mb_pre_commit_setup)
     endif()
 
     if(PC_PRE_COMMIT_MODE STREQUAL "CUSTOM")
+        # Match pre-commit's install guard: `git config core.hooksPath` must be unset,
+        # otherwise hooks under .git/hooks are ignored (same as native `pre_commit install`).
+        execute_process(
+            COMMAND "${GIT_EXECUTABLE}" config core.hooksPath
+            WORKING_DIRECTORY "${PC_PROJECT_SOURCE_DIR}"
+            OUTPUT_VARIABLE _pc_hooks_path_out
+            ERROR_QUIET
+            OUTPUT_STRIP_TRAILING_WHITESPACE
+        )
+        string(STRIP "${_pc_hooks_path_out}" _pc_hooks_path_stripped)
+        if(NOT _pc_hooks_path_stripped STREQUAL "")
+            message(
+                FATAL_ERROR
+                "Cowardly refusing to install hooks with `core.hooksPath` set.\n"
+                "(As it wouldn't make sense to install something that won't be used.)\n"
+                "Hint: `git config --unset-all core.hooksPath`"
+            )
+        endif()
+
         file(COPY_FILE "${_generated_hook}" "${_hook_target}" ONLY_IF_DIFFERENT)
 
         if(NOT WIN32)

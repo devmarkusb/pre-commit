@@ -130,6 +130,7 @@ function(mb_pre_commit_setup)
         GLOB_RECURSE _example_config_deps
         CONFIGURE_DEPENDS
         "${_configs_root}/v*/.pre-commit-config.yaml"
+        "${_configs_root}/v*/.markdownlint.yaml"
     )
 
     # Forward-slash path works better in generated shell script, including Git Bash on Windows.
@@ -284,6 +285,27 @@ function(mb_pre_commit_setup)
                 STATUS
                 "Installed example pre-commit config (configs/v${_best_config_n}) -> ${_config_dest}"
             )
+
+            get_filename_component(
+                _best_config_dir
+                "${_best_config_src}"
+                DIRECTORY
+            )
+            set(_markdownlint_src "${_best_config_dir}/.markdownlint.yaml")
+            if(EXISTS "${_markdownlint_src}")
+                set(_markdownlint_dest
+                    "${PC_PROJECT_SOURCE_DIR}/.markdownlint.yaml"
+                )
+                configure_file(
+                    "${_markdownlint_src}"
+                    "${_markdownlint_dest}"
+                    COPYONLY
+                )
+                message(
+                    STATUS
+                    "Installed example markdownlint config (configs/v${_best_config_n}) -> ${_markdownlint_dest}"
+                )
+            endif()
         endif()
     endif()
 endfunction()

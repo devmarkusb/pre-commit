@@ -19,7 +19,7 @@ commits.
 include(FetchContent)
 
 FetchContent_Declare(
-    mb-pre-commit
+    mb_pre_commit
     GIT_REPOSITORY https://github.com/devmarkusb/pre-commit.git
     GIT_TAG v1.0.0
 )

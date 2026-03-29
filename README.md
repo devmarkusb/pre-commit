@@ -1,5 +1,12 @@
 # pre-commit
 
+[![CI][badge-ci]][workflow-ci]
+[![Pre-commit][badge-pre-commit]][workflow-pre-commit]
+[![Actionlint][badge-actionlint]][workflow-actionlint]
+[![License][badge-license]](LICENSE)
+[![CMake][badge-cmake]][cmake-presets]
+[![Release][badge-release]][releases]
+
 The kind of pre-commit out-of-the-box setup everybody wants, cmake users exclusively for now.
 
 By default, you get pre-commit behavior without annoying
@@ -115,3 +122,17 @@ Configure is set to **re-run** if `pre-commit.in` changes (`CMAKE_CONFIGURE_DEPE
 
 Runs `python -m pre_commit install --install-hooks --hook-type pre-commit` from `PROJECT_SOURCE_DIR`, using the same
 venv. You get upstream’s installed hook and default behavior instead of the custom staged-files / retry script.
+
+<!-- Badge targets (reference links keep the intro row within MD013 line length). -->
+
+[badge-ci]: https://github.com/devmarkusb/pre-commit/actions/workflows/ci.yml/badge.svg?branch=main
+[workflow-ci]: https://github.com/devmarkusb/pre-commit/actions/workflows/ci.yml
+[badge-pre-commit]: https://github.com/devmarkusb/pre-commit/actions/workflows/pre-commit.yml/badge.svg?branch=main
+[workflow-pre-commit]: https://github.com/devmarkusb/pre-commit/actions/workflows/pre-commit.yml
+[badge-actionlint]: https://github.com/devmarkusb/pre-commit/actions/workflows/actionlint.yml/badge.svg?branch=main
+[workflow-actionlint]: https://github.com/devmarkusb/pre-commit/actions/workflows/actionlint.yml
+[badge-license]: https://img.shields.io/badge/license-BSL--1.0-blue.svg
+[badge-cmake]: https://img.shields.io/badge/CMake-≥%203.14-064F8C?logo=cmake&logoColor=white
+[cmake-presets]: https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html
+[badge-release]: https://img.shields.io/github/v/tag/devmarkusb/pre-commit?label=release&logo=github
+[releases]: https://github.com/devmarkusb/pre-commit/releases

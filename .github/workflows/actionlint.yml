@@ -1,0 +1,34 @@
+# Catch workflow mistakes before they land on main.
+name: Actionlint
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - ".github/workflows/**"
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  actionlint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download actionlint
+        env:
+          ACTIONLINT_VERSION: "1.7.7"
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash) \
+            "$ACTIONLINT_VERSION" \
+            /tmp
+          sudo mv /tmp/actionlint /usr/local/bin/actionlint
+          sudo chmod +x /usr/local/bin/actionlint
+
+      - name: Run actionlint
+        run: actionlint -color

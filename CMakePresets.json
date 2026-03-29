@@ -26,7 +26,10 @@
       "hidden": true,
       "inherits": [".mbpc-base"],
       "generator": "Ninja",
-      "description": "Ninja — fast, predictable, IDE-friendly"
+      "description": "Ninja — fast, predictable, IDE-friendly (needs `ninja` on PATH; CLion may omit Homebrew — see PATH below)",
+      "environment": {
+        "PATH": "/opt/homebrew/bin:/usr/local/bin:$penv{PATH}"
+      }
     },
     {
       "name": ".mbpc-make",
@@ -38,7 +41,7 @@
     {
       "name": "default",
       "displayName": "Default (Ninja, Debug)",
-      "description": "Everyday configure: Ninja + Debug-ish flags (harmless for LANGUAGES NONE)",
+      "description": "Everyday configure: Ninja + Debug. If configure fails (missing Ninja), install `ninja` or use preset `unix-makefiles`.",
       "inherits": [".mbpc-ninja"],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
@@ -47,7 +50,7 @@
     {
       "name": "release",
       "displayName": "Release",
-      "description": "Release build type (useful if you later add compiled targets)",
+      "description": "Release build type (Ninja). If Ninja is not found, use `unix-makefiles`.",
       "inherits": [".mbpc-ninja"],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
@@ -56,7 +59,7 @@
     {
       "name": "dev-verbose",
       "displayName": "Dev — verbose CMake",
-      "description": "Louder configure output while hacking on cmake/mb-pre-commit.cmake",
+      "description": "Louder configure output (inherits Ninja default). Use `unix-makefiles` if Ninja is unavailable.",
       "inherits": ["default"],
       "cacheVariables": {
         "CMAKE_MESSAGE_LOG_LEVEL": "VERBOSE"
@@ -65,7 +68,7 @@
     {
       "name": "ci",
       "displayName": "CI / automation",
-      "description": "Strict warnings, deterministic env; pair with workflow ci",
+      "description": "Strict warnings, deterministic env; pair with workflow ci (Ninja + prepended PATH like default)",
       "inherits": [".mbpc-ninja"],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",

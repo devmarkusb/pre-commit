@@ -73,7 +73,6 @@ function(mb_pre_commit_setup)
         )
     endif()
 
-    find_package(Git QUIET)
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
     # Inside function(), CMAKE_CURRENT_LIST_DIR is the caller's file — use the directory of
@@ -83,46 +82,19 @@ function(mb_pre_commit_setup)
     else()
         set(_tool_module_dir "${_MB_PRE_COMMIT_CMAKE_DIR}")
     endif()
+
     set(_configs_root "${_tool_module_dir}/../configs")
     set(_hook_template "${_tool_module_dir}/pre-commit.in")
-    set(_generated_hook "${PC_PROJECT_BINARY_DIR}/pre-commit")
-
-    set(_git_dir "${PC_PROJECT_SOURCE_DIR}/.git")
-    set(_git_hooks_dir "${_git_dir}/hooks")
-    set(_hook_target "${_git_hooks_dir}/pre-commit")
-
-    if(WIN32)
-        set(_venv_python "${PC_PRE_COMMIT_VENV_DIR}/Scripts/python.exe")
-    else()
-        set(_venv_python "${PC_PRE_COMMIT_VENV_DIR}/bin/python3")
-    endif()
-
-    if(
-        NOT GIT_FOUND
-        OR NOT EXISTS "${_git_dir}"
-        OR NOT EXISTS "${_git_hooks_dir}"
+    get_filename_component(
+        _setup_script
+        "${_tool_module_dir}/../python/mb-pre-commit-setup.py"
+        ABSOLUTE
     )
-        message(
-            STATUS
-            "Git checkout not detected in ${PC_PROJECT_SOURCE_DIR}; skipping pre-commit setup"
-        )
-        return()
-    endif()
 
-    if(NOT EXISTS "${_hook_template}")
+    if(NOT EXISTS "${_setup_script}")
         message(
             FATAL_ERROR
-            "mb_pre_commit_setup: hook template not found: ${_hook_template}"
-        )
-    endif()
-
-    if(
-        NOT PC_PRE_COMMIT_MODE STREQUAL "CUSTOM"
-        AND NOT PC_PRE_COMMIT_MODE STREQUAL "NATIVE"
-    )
-        message(
-            FATAL_ERROR
-            "mb_pre_commit_setup: invalid PRE_COMMIT_MODE='${PC_PRE_COMMIT_MODE}', expected CUSTOM or NATIVE"
+            "mb_pre_commit_setup: setup script not found: ${_setup_script}"
         )
     endif()
 
@@ -130,7 +102,7 @@ function(mb_pre_commit_setup)
     set_property(
         DIRECTORY
         APPEND
-        PROPERTY CMAKE_CONFIGURE_DEPENDS "${_hook_template}"
+        PROPERTY CMAKE_CONFIGURE_DEPENDS "${_hook_template}" "${_setup_script}"
     )
     # CONFIGURE_DEPENDS registers these files with the build tool so CMake re-runs when
     # they change. Do not also append them to CMAKE_CONFIGURE_DEPENDS — that duplicates
@@ -142,199 +114,40 @@ function(mb_pre_commit_setup)
         "${_configs_root}/v*/.markdownlint.yaml"
     )
 
-    # Forward-slash path works better in generated shell script, including Git Bash on Windows.
-    file(TO_CMAKE_PATH "${_venv_python}" PRE_COMMIT_VENV_PYTHON_FOR_HOOK)
-
-    configure_file("${_hook_template}" "${_generated_hook}" @ONLY)
-
-    if(NOT EXISTS "${_venv_python}")
-        message(
-            STATUS
-            "Creating Python virtual environment for pre-commit: ${PC_PRE_COMMIT_VENV_DIR}"
-        )
-        execute_process(
-            COMMAND "${Python3_EXECUTABLE}" -m venv "${PC_PRE_COMMIT_VENV_DIR}"
-            RESULT_VARIABLE _venv_result
-        )
-        if(NOT _venv_result EQUAL 0)
-            message(
-                FATAL_ERROR
-                "Failed to create Python virtual environment: ${PC_PRE_COMMIT_VENV_DIR}"
-            )
-        endif()
-    endif()
-
-    set(_install_pre_commit TRUE)
-    execute_process(
-        COMMAND "${_venv_python}" -m pre_commit --version
-        OUTPUT_VARIABLE _pc_version_out
-        ERROR_VARIABLE _pc_version_err
-        RESULT_VARIABLE _pc_version_res
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        ERROR_STRIP_TRAILING_WHITESPACE
+    set(_setup_args
+        "${Python3_EXECUTABLE}"
+        "${_setup_script}"
+        --project-source-dir
+        "${PC_PROJECT_SOURCE_DIR}"
+        --project-binary-dir
+        "${PC_PROJECT_BINARY_DIR}"
+        --mode
+        "${PC_PRE_COMMIT_MODE}"
+        --version
+        "${PC_PRE_COMMIT_VERSION}"
+        --venv-dir
+        "${PC_PRE_COMMIT_VENV_DIR}"
+        --tool-root
+        "${_tool_module_dir}"
+        --python
+        "${Python3_EXECUTABLE}"
     )
-
-    if(_pc_version_res EQUAL 0)
-        string(
-            REGEX MATCH
-            "[0-9]+\\.[0-9]+\\.[0-9]+"
-            _installed_version
-            "${_pc_version_out}"
-        )
-        if(_installed_version STREQUAL "${PC_PRE_COMMIT_VERSION}")
-            set(_install_pre_commit FALSE)
-        endif()
+    if(NOT PC_PRE_COMMIT_INSTALL_EXAMPLE_CONFIG)
+        list(APPEND _setup_args --no-install-example-config)
     endif()
 
-    if(_install_pre_commit)
+    execute_process(COMMAND ${_setup_args} RESULT_VARIABLE _mb_pc_setup_result)
+    if(NOT _mb_pc_setup_result EQUAL 0)
         message(
-            STATUS
-            "Installing pre-commit ${PC_PRE_COMMIT_VERSION} into ${PC_PRE_COMMIT_VENV_DIR}"
+            FATAL_ERROR
+            "mb_pre_commit_setup: mb-pre-commit-setup.py failed (exit ${_mb_pc_setup_result})"
         )
-        execute_process(
-            COMMAND
-                "${_venv_python}" -m pip install --upgrade pip
-                "pre-commit==${PC_PRE_COMMIT_VERSION}"
-            RESULT_VARIABLE _pip_result
-        )
-        if(NOT _pip_result EQUAL 0)
-            message(
-                FATAL_ERROR
-                "Failed to install pre-commit ${PC_PRE_COMMIT_VERSION}"
-            )
-        endif()
+    endif()
+
+    if(WIN32)
+        set(_venv_python "${PC_PRE_COMMIT_VENV_DIR}/Scripts/python.exe")
     else()
-        message(
-            STATUS
-            "pre-commit ${PC_PRE_COMMIT_VERSION} already available in ${PC_PRE_COMMIT_VENV_DIR}"
-        )
-    endif()
-
-    if(PC_PRE_COMMIT_MODE STREQUAL "CUSTOM")
-        # Match pre-commit's install guard: `git config core.hooksPath` must be unset,
-        # otherwise hooks under .git/hooks are ignored (same as native `pre_commit install`).
-        execute_process(
-            COMMAND "${GIT_EXECUTABLE}" config core.hooksPath
-            WORKING_DIRECTORY "${PC_PROJECT_SOURCE_DIR}"
-            OUTPUT_VARIABLE _pc_hooks_path_out
-            ERROR_QUIET
-            OUTPUT_STRIP_TRAILING_WHITESPACE
-        )
-        string(STRIP "${_pc_hooks_path_out}" _pc_hooks_path_stripped)
-        if(NOT _pc_hooks_path_stripped STREQUAL "")
-            message(
-                FATAL_ERROR
-                "Cowardly refusing to install hooks with `core.hooksPath` set.\n"
-                "(As it wouldn't make sense to install something that won't be used.)\n"
-                "Hint: `git config --unset-all core.hooksPath`"
-            )
-        endif()
-
-        file(COPY_FILE "${_generated_hook}" "${_hook_target}" ONLY_IF_DIFFERENT)
-
-        if(NOT WIN32)
-            file(
-                CHMOD
-                "${_hook_target}"
-                PERMISSIONS
-                    OWNER_READ
-                    OWNER_WRITE
-                    OWNER_EXECUTE
-                    GROUP_READ
-                    GROUP_EXECUTE
-                    WORLD_READ
-                    WORLD_EXECUTE
-            )
-        endif()
-
-        message(STATUS "Installed custom pre-commit hook: ${_hook_target}")
-    elseif(PC_PRE_COMMIT_MODE STREQUAL "NATIVE")
-        execute_process(
-            COMMAND
-                "${_venv_python}" -m pre_commit install --install-hooks
-                --hook-type pre-commit
-            WORKING_DIRECTORY "${PC_PROJECT_SOURCE_DIR}"
-            RESULT_VARIABLE _install_result
-        )
-        if(NOT _install_result EQUAL 0)
-            message(FATAL_ERROR "pre-commit install failed")
-        endif()
-
-        message(
-            STATUS
-            "Installed native pre-commit hook in ${PC_PROJECT_SOURCE_DIR}"
-        )
-    endif()
-
-    if(PC_PRE_COMMIT_INSTALL_EXAMPLE_CONFIG)
-        string(
-            REGEX MATCH
-            "^([0-9]+)"
-            _pc_major_match
-            "${PC_PRE_COMMIT_VERSION}"
-        )
-        if(NOT _pc_major_match)
-            message(
-                FATAL_ERROR
-                "mb_pre_commit_setup: could not parse major from PRE_COMMIT_VERSION='${PC_PRE_COMMIT_VERSION}'"
-            )
-        endif()
-        set(_pc_major "${CMAKE_MATCH_1}")
-
-        file(
-            GLOB _versioned_config_dirs
-            LIST_DIRECTORIES true
-            "${_configs_root}/v*"
-        )
-        set(_best_config_n 0)
-        set(_best_config_src "")
-        foreach(_vdir ${_versioned_config_dirs})
-            get_filename_component(_vname "${_vdir}" NAME)
-            if(_vname MATCHES "^v([0-9]+)$")
-                set(_vn "${CMAKE_MATCH_1}")
-                if(
-                    _vn GREATER_EQUAL 1
-                    AND _vn LESS_EQUAL _pc_major
-                    AND _vn GREATER _best_config_n
-                )
-                    set(_candidate "${_vdir}/.pre-commit-config.yaml")
-                    if(EXISTS "${_candidate}")
-                        set(_best_config_n "${_vn}")
-                        set(_best_config_src "${_candidate}")
-                    endif()
-                endif()
-            endif()
-        endforeach()
-
-        if(_best_config_src)
-            set(_config_dest "${PC_PROJECT_SOURCE_DIR}/.pre-commit-config.yaml")
-            configure_file("${_best_config_src}" "${_config_dest}" COPYONLY)
-            message(
-                STATUS
-                "Installed example pre-commit config (configs/v${_best_config_n}) -> ${_config_dest}"
-            )
-
-            get_filename_component(
-                _best_config_dir
-                "${_best_config_src}"
-                DIRECTORY
-            )
-            set(_markdownlint_src "${_best_config_dir}/.markdownlint.yaml")
-            if(EXISTS "${_markdownlint_src}")
-                set(_markdownlint_dest
-                    "${PC_PROJECT_SOURCE_DIR}/.markdownlint.yaml"
-                )
-                configure_file(
-                    "${_markdownlint_src}"
-                    "${_markdownlint_dest}"
-                    COPYONLY
-                )
-                message(
-                    STATUS
-                    "Installed example markdownlint config (configs/v${_best_config_n}) -> ${_markdownlint_dest}"
-                )
-            endif()
-        endif()
+        set(_venv_python "${PC_PRE_COMMIT_VENV_DIR}/bin/python3")
     endif()
 
     # One-word build target: pre-commit on the whole tree (not just staged files).

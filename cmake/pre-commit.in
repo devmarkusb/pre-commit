@@ -15,15 +15,41 @@ git rev-parse --is-inside-work-tree >/dev/null 2>&1 || exit 0
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root" || die "failed to enter repository root"
 
-if [ -x "@PRE_COMMIT_VENV_PYTHON_FOR_HOOK@" ]; then
-    PRE_COMMIT_PYTHON="@PRE_COMMIT_VENV_PYTHON_FOR_HOOK@"
-elif command -v python3 >/dev/null 2>&1; then
-    PRE_COMMIT_PYTHON="python3"
-elif command -v python >/dev/null 2>&1; then
-    PRE_COMMIT_PYTHON="python"
-else
-    die "python not found; re-run CMake configure"
-fi
+# Prefer the project venv (survives re-clones via repo-relative path). Use `-f` + a
+# quick `python -m pre_commit` probe instead of `-x` alone: some environments mark
+# the venv interpreter in ways that make `-x` unreliable, and falling back to `python3`
+# would pick a system interpreter without pre-commit (e.g. Homebrew Python 3.14).
+select_pre_commit_python() {
+    _repo="$1"
+    _rel="@PRE_COMMIT_VENV_PYTHON_REL@"
+    _abs="@PRE_COMMIT_VENV_PYTHON_FOR_HOOK@"
+
+    if [ -n "$_rel" ]; then
+        _c="${_repo}/${_rel}"
+        if [ -f "$_c" ] && "$_c" -m pre_commit --version >/dev/null 2>&1; then
+            printf '%s\n' "$_c"
+            return 0
+        fi
+    fi
+    if [ -n "$_abs" ]; then
+        _c="$_abs"
+        if [ -f "$_c" ] && "$_c" -m pre_commit --version >/dev/null 2>&1; then
+            printf '%s\n' "$_c"
+            return 0
+        fi
+    fi
+    for _c in python3 python; do
+        if command -v "$_c" >/dev/null 2>&1 \
+            && "$_c" -m pre_commit --version >/dev/null 2>&1; then
+            command -v "$_c"
+            return 0
+        fi
+    done
+    return 1
+}
+
+PRE_COMMIT_PYTHON="$(select_pre_commit_python "$repo_root")" \
+    || die "pre-commit not found in the project venv; re-run mb_pre_commit_setup (CMake or python/mb-pre-commit-setup.py)"
 
 [ -f ".pre-commit-config.yaml" ] || exit 0
 

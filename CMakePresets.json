@@ -1,0 +1,230 @@
+{
+  "version": 10,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 14,
+    "patch": 0
+  },
+  "include": [],
+  "configurePresets": [
+    {
+      "name": ".mbpc-base",
+      "hidden": true,
+      "description": "Shared defaults for mb-pre-commit (meta-project, LANGUAGES NONE)",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "warnings": {
+        "dev": true,
+        "deprecated": true,
+        "unusedCli": true
+      },
+      "cacheVariables": {
+        "CMAKE_MESSAGE_LOG_LEVEL": "STATUS"
+      }
+    },
+    {
+      "name": ".mbpc-ninja",
+      "hidden": true,
+      "inherits": [".mbpc-base"],
+      "generator": "Ninja",
+      "description": "Ninja — fast, predictable, IDE-friendly"
+    },
+    {
+      "name": ".mbpc-make",
+      "hidden": true,
+      "inherits": [".mbpc-base"],
+      "generator": "Unix Makefiles",
+      "description": "Classic Makefiles (no Ninja required)"
+    },
+    {
+      "name": "default",
+      "displayName": "Default (Ninja, Debug)",
+      "description": "Everyday configure: Ninja + Debug-ish flags (harmless for LANGUAGES NONE)",
+      "inherits": [".mbpc-ninja"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release",
+      "displayName": "Release",
+      "description": "Release build type (useful if you later add compiled targets)",
+      "inherits": [".mbpc-ninja"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "dev-verbose",
+      "displayName": "Dev — verbose CMake",
+      "description": "Louder configure output while hacking on cmake/mb-pre-commit.cmake",
+      "inherits": ["default"],
+      "cacheVariables": {
+        "CMAKE_MESSAGE_LOG_LEVEL": "VERBOSE"
+      }
+    },
+    {
+      "name": "ci",
+      "displayName": "CI / automation",
+      "description": "Strict warnings, deterministic env; pair with workflow ci",
+      "inherits": [".mbpc-ninja"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_MESSAGE_LOG_LEVEL": "NOTICE",
+        "CMAKE_WARN_DEPRECATED": "ON"
+      },
+      "environment": {
+        "PYTHONUTF8": "1",
+        "PYTHONIOENCODING": "utf-8",
+        "NINJA_STATUS": "[%f/%t %e s] "
+      }
+    },
+    {
+      "name": "unix-makefiles",
+      "displayName": "Unix Makefiles",
+      "description": "When Ninja is not installed",
+      "inherits": [".mbpc-make"],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "xcode",
+      "displayName": "Xcode (macOS)",
+      "description": "Multi-config Xcode project — open build/xcode/*.xcodeproj",
+      "inherits": [".mbpc-base"],
+      "generator": "Xcode",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "vendor": {
+        "jetbrains.com/clion": {
+          "toolchain": "Xcode"
+        }
+      }
+    },
+    {
+      "name": "vs2022",
+      "displayName": "Visual Studio 2022",
+      "description": "MSVC toolchain, multi-config (x64 host)",
+      "inherits": [".mbpc-base"],
+      "generator": "Visual Studio 17 2022",
+      "architecture": {
+        "value": "x64",
+        "strategy": "set"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": "windows",
+          "intelliSenseMode": "windows-msvc-x64"
+        }
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default",
+      "description": "Build after `default` configure",
+      "jobs": 0
+    },
+    {
+      "name": "release",
+      "configurePreset": "release",
+      "configuration": "Release",
+      "jobs": 0
+    },
+    {
+      "name": "dev-verbose",
+      "configurePreset": "dev-verbose",
+      "jobs": 0
+    },
+    {
+      "name": "ci",
+      "configurePreset": "ci",
+      "configuration": "Release",
+      "verbose": true,
+      "jobs": 0
+    },
+    {
+      "name": "unix-makefiles",
+      "configurePreset": "unix-makefiles",
+      "jobs": 0
+    },
+    {
+      "name": "xcode-debug",
+      "configurePreset": "xcode",
+      "configuration": "Debug",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "jobs": 0
+    },
+    {
+      "name": "vs2022-debug",
+      "configurePreset": "vs2022",
+      "configuration": "Debug",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "jobs": 0
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "dev",
+      "displayName": "Dev loop",
+      "description": "Configure (default) then build — dogfood mb_pre_commit_setup locally",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "default"
+        },
+        {
+          "type": "build",
+          "name": "default"
+        }
+      ]
+    },
+    {
+      "name": "ship",
+      "displayName": "Release workflow",
+      "description": "Configure + build Release preset",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "release"
+        },
+        {
+          "type": "build",
+          "name": "release"
+        }
+      ]
+    },
+    {
+      "name": "ci",
+      "displayName": "CI pipeline",
+      "description": "Strict configure + verbose build (matches automation expectations)",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "ci"
+        },
+        {
+          "type": "build",
+          "name": "ci"
+        }
+      ]
+    }
+  ]
+}

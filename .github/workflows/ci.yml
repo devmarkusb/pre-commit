@@ -89,6 +89,9 @@ jobs:
           cmake --preset "$CMAKE_PRESET"
           cmake --build --preset "$CMAKE_PRESET"
 
+      - name: Sweep (pre-commit all files via CMake target)
+        run: cmake --build --preset "$CMAKE_PRESET" --target mb-pre-commit-sweep
+
       - name: Optional workflow preset
         if: >-
           github.event_name == 'workflow_dispatch'
@@ -149,3 +152,6 @@ jobs:
         run: |
           cmake --preset unix-makefiles
           cmake --build --preset unix-makefiles
+
+      - name: Sweep (pre-commit all files)
+        run: cmake --build --preset unix-makefiles --target mb-pre-commit-sweep

@@ -16,6 +16,7 @@ function(mb_pre_commit_setup)
         PRE_COMMIT_VERSION
         PRE_COMMIT_VENV_DIR
         PRE_COMMIT_INSTALL_EXAMPLE_CONFIG
+        PRE_COMMIT_SWEEP_TARGET
     )
     cmake_parse_arguments(PC "${options}" "${oneValueArgs}" "" ${ARGN})
 
@@ -41,6 +42,10 @@ function(mb_pre_commit_setup)
 
     if(NOT DEFINED PC_PRE_COMMIT_INSTALL_EXAMPLE_CONFIG)
         set(PC_PRE_COMMIT_INSTALL_EXAMPLE_CONFIG ON)
+    endif()
+
+    if(NOT DEFINED PC_PRE_COMMIT_SWEEP_TARGET)
+        set(PC_PRE_COMMIT_SWEEP_TARGET "mb-pre-commit-sweep")
     endif()
 
     if(NOT IS_ABSOLUTE "${PC_PROJECT_SOURCE_DIR}")
@@ -307,5 +312,37 @@ function(mb_pre_commit_setup)
                 )
             endif()
         endif()
+    endif()
+
+    # One-word build target: pre-commit on the whole tree (not just staged files).
+    if(NOT PC_PRE_COMMIT_SWEEP_TARGET STREQUAL "OFF")
+        set(_sweep_target "${PC_PRE_COMMIT_SWEEP_TARGET}")
+        if(TARGET "${_sweep_target}")
+            if(_sweep_target STREQUAL "mb-pre-commit-sweep")
+                set(_sweep_target mb_pre_commit_sweep)
+                message(
+                    STATUS
+                    "mb_pre_commit_setup: target 'mb-pre-commit-sweep' already exists; using 'mb_pre_commit_sweep' (pre-commit run --all-files)"
+                )
+            endif()
+        endif()
+        if(TARGET "${_sweep_target}")
+            message(
+                FATAL_ERROR
+                "mb_pre_commit_setup: PRE_COMMIT_SWEEP_TARGET name '${_sweep_target}' is already a target"
+            )
+        endif()
+
+        add_custom_target(
+            "${_sweep_target}"
+            COMMAND "${_venv_python}" -m pre_commit run --all-files
+            WORKING_DIRECTORY "${PC_PROJECT_SOURCE_DIR}"
+            COMMENT "pre-commit: all files"
+            USES_TERMINAL
+        )
+        message(
+            STATUS
+            "pre-commit sweep: cmake --build <dir> --target ${_sweep_target}  (pre-commit run --all-files)"
+        )
     endif()
 endfunction()

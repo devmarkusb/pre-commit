@@ -24,7 +24,7 @@ FetchContent_Declare(
     GIT_TAG v1.0.0
 )
 
-FetchContent_MakeAvailable(mb-pre-commit)
+FetchContent_MakeAvailable(mb_pre_commit)
 
 mb_pre_commit_setup()
 ```

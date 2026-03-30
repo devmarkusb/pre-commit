@@ -19,6 +19,7 @@ out/
 
 # python
 .venv
+__pycache__/
 
 # misc
 CMakeUserPresets.json

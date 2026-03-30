@@ -176,8 +176,7 @@ function(mb_pre_commit_setup)
 
     if(_pc_version_res EQUAL 0)
         string(
-            REGEX MATCH
-            "[0-9]+\\.[0-9]+\\.[0-9]+"
+            REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+"
             _installed_version
             "${_pc_version_out}"
         )
@@ -234,8 +233,7 @@ function(mb_pre_commit_setup)
 
         if(NOT WIN32)
             file(
-                CHMOD
-                "${_hook_target}"
+                CHMOD "${_hook_target}"
                 PERMISSIONS
                     OWNER_READ
                     OWNER_WRITE
@@ -268,8 +266,7 @@ function(mb_pre_commit_setup)
 
     if(PC_PRE_COMMIT_INSTALL_EXAMPLE_CONFIG)
         string(
-            REGEX MATCH
-            "^([0-9]+)"
+            REGEX MATCH "^([0-9]+)"
             _pc_major_match
             "${PC_PRE_COMMIT_VERSION}"
         )

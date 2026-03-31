@@ -34,7 +34,6 @@ repos:
     hooks:
     - id: gersemi
       name: CMake linting
-      exclude: tests/.*/data/
 
     # Clang-format for C++
     # This brings in a portable version of clang-format.

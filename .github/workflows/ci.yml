@@ -58,12 +58,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Shipped example config matches repo root
+        run: cmp -s configs/v4/.pre-commit-config.yaml .pre-commit-config.yaml
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: "3.12"
 
-      # Presets schema v10 needs CMake ≥ 4.0; PyPI wheels keep all three runners on the same major.
+      # Preset schema v10 requires CMake ≥ 4.0 (see CMakePresets.json). mb-pre-commit.cmake needs ≥ 3.21.
       - name: Install CMake and Ninja
         run: |
           python -m pip install --upgrade pip
@@ -137,6 +140,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+
+      - name: Shipped example config matches repo root
+        run: cmp -s configs/v4/.pre-commit-config.yaml .pre-commit-config.yaml
+
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"

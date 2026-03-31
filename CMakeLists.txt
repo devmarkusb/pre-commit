@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.21)
 project(mb.pre-commit LANGUAGES NONE)
 
 # Loaded via FetchContent_MakeAvailable: defines mb_pre_commit_setup() in the parent scope.

@@ -23,7 +23,7 @@ include(FetchContent)
 FetchContent_Declare(
     mb_pre_commit
     GIT_REPOSITORY https://github.com/devmarkusb/pre-commit.git
-    GIT_TAG v1.0.0
+    GIT_TAG v1.4.0
 )
 
 FetchContent_MakeAvailable(mb_pre_commit)
@@ -54,8 +54,8 @@ configure** (overwriting any existing file there) from the newest matching entry
 this repo: `N` is the pre-commit **major** that directory targets, and CMake picks the largest `vN` with `N` less than
 or equal to your `PRE_COMMIT_VERSION` major (default `4.5.1` uses `configs/v4`). Add `v5`, … later when you want configs
 that assume newer pre-commit majors. If no `vN` qualifies, nothing is installed. Set
-`PRE_COMMIT_INSTALL_EXAMPLE_CONFIG OFF` on `mb_pre_commit_setup()` to skip this entirely. Without a config file, the *
-*CUSTOM** hook exits successfully and does nothing; **NATIVE** mode uses whatever `pre-commit install` would normally
+`PRE_COMMIT_INSTALL_EXAMPLE_CONFIG OFF` on `mb_pre_commit_setup()` to skip this entirely. Without a config file, the
+**CUSTOM** hook exits successfully and does nothing; **NATIVE** mode uses whatever `pre-commit install` would normally
 expect.
 
 Hook templates and example configs resolve from this package’s directory even when your project’s `CMakeLists.txt` lives
@@ -107,8 +107,12 @@ If the tree is not a normal Git checkout (no `.git` or `.git/hooks`), setup is *
 message—configure still succeeds.
 
 **Requirements:** `find_package(Python3 REQUIRED COMPONENTS Interpreter)` must succeed (used to create the venv). Git
-must be discoverable when a checkout exists. The hook script uses POSIX `sh`, `xargs`, and `mktemp` (typical on Unix; on
-Windows, **CUSTOM** mode is aimed at environments that run the hook as a shell script, e.g. Git Bash).
+must be discoverable when a checkout exists. The **CUSTOM** hook is a **Bash** script (`read -d ''` for NUL-delimited
+paths, `pipefail`); it needs Bash in `PATH` when Git runs hooks (typical on Unix; on Windows use Git Bash or another
+environment where the hook’s `#!/usr/bin/env bash` resolves). It also uses `xargs` and `mktemp`.
+
+This project’s CMake module uses APIs that require **CMake 3.21+** (`file(COPY_FILE)`, `file(CHMOD)`). The
+[`CMakePresets.json`](CMakePresets.json) in this repository targets **CMake 4.0+** (preset schema version 10).
 
 ## `mb_pre_commit_setup` options
 
@@ -133,7 +137,7 @@ CMake **configures** `cmake/pre-commit.in` into `${PROJECT_BINARY_DIR}/pre-commi
 `${PROJECT_SOURCE_DIR}/.git/hooks/pre-commit` when the content differs. On non-Windows hosts the hook is marked
 executable.
 
-The hook is a small `sh` script that:
+The hook is a small Bash script that:
 
 - Runs only on **staged** paths (`git diff --cached`, added/copied/modified/renamed, existing files only).
 - If **`.pre-commit-config.yaml`** is missing, it exits **0** (no-op).
@@ -150,6 +154,10 @@ Runs `python -m pre_commit install --install-hooks --hook-type pre-commit` from 
 venv. You get upstream’s installed hook and default behavior instead of the custom staged-files / retry script.
 
 ## Contributing and releases
+
+The canonical example hook list for packaging is [`configs/v4/.pre-commit-config.yaml`](configs/v4/.pre-commit-config.yaml).
+The copy at the repository root is kept **byte-identical** (CI fails on drift) so local `pre-commit` runs and packaged
+configs stay aligned; edit `configs/v4/` first, then sync the root file.
 
 Maintainers can create an annotated release tag and push it to `origin` with [`scripts/git-tag`](scripts/git-tag): it
 refuses a dirty working tree or an existing tag, then runs `git tag -a` with message `Release <tag>` and `git push
@@ -174,7 +182,7 @@ is another lightweight option.
 [badge-actionlint]: https://github.com/devmarkusb/pre-commit/actions/workflows/actionlint.yml/badge.svg?branch=main
 [workflow-actionlint]: https://github.com/devmarkusb/pre-commit/actions/workflows/actionlint.yml
 [badge-license]: https://img.shields.io/badge/license-BSL--1.0-blue.svg
-[badge-cmake]: https://img.shields.io/badge/CMake-≥%203.14-064F8C?logo=cmake&logoColor=white
+[badge-cmake]: https://img.shields.io/badge/CMake-≥%203.21-064F8C?logo=cmake&logoColor=white
 [cmake-presets]: https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html
 [badge-release]: https://img.shields.io/github/v/tag/devmarkusb/pre-commit?label=release&logo=github
 [releases]: https://github.com/devmarkusb/pre-commit/releases

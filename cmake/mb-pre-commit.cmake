@@ -107,8 +107,9 @@ function(mb_pre_commit_setup)
     # CONFIGURE_DEPENDS registers these files with the build tool so CMake re-runs when
     # they change. Do not also append them to CMAKE_CONFIGURE_DEPENDS — that duplicates
     # the same outputs in Ninja ("defined as an output multiple times").
+    # The GLOB list is unused on purpose; only CONFIGURE_DEPENDS side effects matter.
     file(
-        GLOB_RECURSE _example_config_deps
+        GLOB_RECURSE _example_config_deps_unused
         CONFIGURE_DEPENDS
         "${_configs_root}/v*/.pre-commit-config.yaml"
         "${_configs_root}/v*/.markdownlint.yaml"

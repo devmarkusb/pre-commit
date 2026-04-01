@@ -1,5 +1,6 @@
-#!/usr/bin/env sh
-set -eu
+#!/usr/bin/env bash
+# Bash is required: NUL-delimited paths (`read -d ''`) are not POSIX `sh` (e.g. Debian/Ubuntu `/bin/sh` is dash).
+set -euo pipefail
 
 die() {
     printf '%s\n' "pre-commit hook: $*" >&2

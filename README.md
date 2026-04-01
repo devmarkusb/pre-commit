@@ -12,8 +12,8 @@ making cmake users especially happy, but also usable via one-shot
 `$ ./python/mb-pre-commit-setup.py`.
 
 By default, you get pre-commit behavior without annoying
-failing commits and manual amends or separate formatting
-commits.
+failing commits (except markdown or things not fixable automatically)
+and manual amends or separate formatting commits.
 
 ## Usage, quick start
 

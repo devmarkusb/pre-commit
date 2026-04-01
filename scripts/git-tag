@@ -27,7 +27,9 @@ def main() -> int:
     p = argparse.ArgumentParser(
         description=(
             "Create an annotated tag at HEAD with message 'Release TAG', "
-            "then push to origin. Refuses if the working tree is dirty or the tag exists."
+            "then push to origin. Refuses if the working tree is dirty or the tag exists. "
+            "If push fails after the tag was created, remove the local tag "
+            "(`git tag -d TAG`) or push again when the network is healthy."
         )
     )
     p.add_argument("tag", help='e.g. v1.2.0')

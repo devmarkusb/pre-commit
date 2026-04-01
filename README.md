@@ -7,11 +7,13 @@
 [![CMake][badge-cmake]][cmake-presets]
 [![Release][badge-release]][releases]
 
-The kind of pre-commit out-of-the-box setup everybody wants, cmake users exclusively for now.
+The kind of pre-commit out-of-the-box setup everybody wants,
+making cmake users especially happy, but also usable via one-shot
+`$ ./python/mb-pre-commit-setup.py`.
 
 By default, you get pre-commit behavior without annoying
-failing commits and manual amends or separate formatting
-commits.
+failing commits (except markdown or things not fixable automatically)
+and manual amends or separate formatting commits.
 
 ## Usage, quick start
 
@@ -27,6 +29,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(mb_pre_commit)
 
 mb_pre_commit_setup()
+```
+
+Or without CMake:
+
+```
+./python/mb-pre-commit-setup.py
 ```
 
 ### What it does, and alternative setup

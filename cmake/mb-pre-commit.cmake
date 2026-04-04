@@ -15,6 +15,7 @@ function(mb_pre_commit_setup)
         PRE_COMMIT_VENV_DIR
         PRE_COMMIT_INSTALL_EXAMPLE_CONFIG
         PRE_COMMIT_SWEEP_TARGET
+        PRE_COMMIT_TOOL_SWEEP_TARGET
     )
     cmake_parse_arguments(PC "${options}" "${oneValueArgs}" "" ${ARGN})
 
@@ -180,6 +181,39 @@ function(mb_pre_commit_setup)
         message(
             STATUS
             "pre-commit sweep: cmake --build <dir> --target ${_sweep_target}  (pre-commit run --all-files)"
+        )
+    endif()
+
+    # Optional second sweep: mb-pre-commit checkout (e.g. submodule) when PROJECT_SOURCE_DIR is
+    # the outer project. Only registered when PRE_COMMIT_TOOL_SWEEP_TARGET is set (use OFF to
+    # explicitly omit; omit the parameter entirely to skip adding this target).
+    if(
+        PC_PRE_COMMIT_TOOL_SWEEP_TARGET
+        AND NOT PC_PRE_COMMIT_TOOL_SWEEP_TARGET STREQUAL "OFF"
+    )
+        get_filename_component(
+            _mb_pc_tool_repo_root
+            "${_tool_module_dir}/.."
+            ABSOLUTE
+        )
+        set(_tool_sweep_target "${PC_PRE_COMMIT_TOOL_SWEEP_TARGET}")
+        if(TARGET "${_tool_sweep_target}")
+            message(
+                FATAL_ERROR
+                "mb_pre_commit_setup: PRE_COMMIT_TOOL_SWEEP_TARGET name '${_tool_sweep_target}' is already a target"
+            )
+        endif()
+
+        add_custom_target(
+            "${_tool_sweep_target}"
+            COMMAND "${_venv_python}" -m pre_commit run --all-files
+            WORKING_DIRECTORY "${_mb_pc_tool_repo_root}"
+            COMMENT "pre-commit: all files (mb-pre-commit tool checkout)"
+            USES_TERMINAL
+        )
+        message(
+            STATUS
+            "pre-commit sweep (tool repo): cmake --build <dir> --target ${_tool_sweep_target}  (pre-commit run --all-files in ${_mb_pc_tool_repo_root})"
         )
     endif()
 endfunction()

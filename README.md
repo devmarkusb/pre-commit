@@ -15,6 +15,11 @@ By default, you get pre-commit behavior without annoying
 failing commits (except markdown or things not fixable automatically)
 and manual amends or separate formatting commits.
 
+One drawback: the custom commit hook won't work properly for code
+changes within submodules. To help a bit with that, repos
+typically developed as submodules can be configured to get
+their own sweep target at least, see PRE_COMMIT_TOOL_SWEEP_TARGET.
+
 ## Usage, quick start
 
 ```
@@ -76,6 +81,21 @@ That runs `pre-commit run --all-files` with the same venv and repo root as the h
 without remembering flags or paths. Disable the target with `PRE_COMMIT_SWEEP_TARGET OFF`, or override the name with
 `PRE_COMMIT_SWEEP_TARGET my-lint-all` or just `sweep`.
 
+### Optional: sweep this package’s checkout (`PRE_COMMIT_TOOL_SWEEP_TARGET`)
+
+The main sweep uses **`PROJECT_SOURCE_DIR`** as its working directory. When the current repo is a **submodule** (or
+`PROJECT_SOURCE_DIR` points at an outer repo), you may also want a full-tree run **inside this package’s tree**.
+
+Pass **`PRE_COMMIT_TOOL_SWEEP_TARGET <name>`** to register a second `add_custom_target` with that name, same venv and
+command as above, but with working directory set to **this** checkout. **Omit the argument** if you do not need that
+target; `OFF` means the same as omitting it.
+
+Example:
+
+```cmake
+mb_pre_commit_setup(PRE_COMMIT_TOOL_SWEEP_TARGET mb-pre-commit-sweep-tool-repo)
+```
+
 ## If customization is needed
 
 ```
@@ -102,6 +122,9 @@ On **CMake configure**, `mb_pre_commit_setup()` can:
   `CMAKE_SOURCE_DIR`).
 - Register a **`mb-pre-commit-sweep`** CMake target that runs **pre-commit on all files**
   (`pre-commit run --all-files`) from `PROJECT_SOURCE_DIR` (see above).
+- Optionally, register **another** sweep target (`PRE_COMMIT_TOOL_SWEEP_TARGET`) that runs the same command from **this
+  package’s root** (parent of `cmake/`); see **Optional: sweep this package’s checkout** under [Run pre-commit on all
+  files](#run-pre-commit-on-all-files-mb-pre-commit-sweep).
 
 If the tree is not a normal Git checkout (no `.git` or `.git/hooks`), setup is **skipped** with a status
 message—configure still succeeds.
@@ -116,15 +139,16 @@ This project’s CMake module uses APIs that require **CMake 3.21+** (`file(COPY
 
 ## `mb_pre_commit_setup` options
 
-| Argument                            | Default                       | Meaning                                                                                                                                                     |
-|-------------------------------------|-------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `PROJECT_SOURCE_DIR`                | `CMAKE_SOURCE_DIR`            | Root of the Git repo where `.git` lives and hooks are installed.                                                                                            |
-| `PROJECT_BINARY_DIR`                | `CMAKE_BINARY_DIR`            | Where the generated hook file is written before install (`pre-commit` file).                                                                                |
-| `PRE_COMMIT_MODE`                   | `CUSTOM`                      | `CUSTOM` or `NATIVE` (see below).                                                                                                                           |
-| `PRE_COMMIT_VERSION`                | `4.5.1`                       | Exact `pre-commit` version installed in the venv via pip.                                                                                                   |
-| `PRE_COMMIT_VENV_DIR`               | `${PROJECT_SOURCE_DIR}/.venv` | Virtualenv path; `Scripts/python.exe` on Windows, `bin/python3` otherwise.                                                                                  |
-| `PRE_COMMIT_INSTALL_EXAMPLE_CONFIG` | `ON`                          | When `ON`, copies the best matching `configs/vN/.pre-commit-config.yaml` to `${PROJECT_SOURCE_DIR}/.pre-commit-config.yaml` on each configure (overwrites). |
+| Argument                            | Default                       | Meaning                                                                                                                                                                  |
+|-------------------------------------|-------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `PROJECT_SOURCE_DIR`                | `CMAKE_SOURCE_DIR`            | Root of the Git repo where `.git` lives and hooks are installed.                                                                                                         |
+| `PROJECT_BINARY_DIR`                | `CMAKE_BINARY_DIR`            | Where the generated hook file is written before install (`pre-commit` file).                                                                                             |
+| `PRE_COMMIT_MODE`                   | `CUSTOM`                      | `CUSTOM` or `NATIVE` (see below).                                                                                                                                        |
+| `PRE_COMMIT_VERSION`                | `4.5.1`                       | Exact `pre-commit` version installed in the venv via pip.                                                                                                                |
+| `PRE_COMMIT_VENV_DIR`               | `${PROJECT_SOURCE_DIR}/.venv` | Virtualenv path; `Scripts/python.exe` on Windows, `bin/python3` otherwise.                                                                                               |
+| `PRE_COMMIT_INSTALL_EXAMPLE_CONFIG` | `ON`                          | When `ON`, copies the best matching `configs/vN/.pre-commit-config.yaml` to `${PROJECT_SOURCE_DIR}/.pre-commit-config.yaml` on each configure (overwrites).              |
 | `PRE_COMMIT_SWEEP_TARGET`           | `mb-pre-commit-sweep`         | Name of the `add_custom_target` that runs `pre-commit run --all-files`. Set to `OFF` to skip. If the default name is taken, the target is `mb_pre_commit_sweep` instead. |
+| `PRE_COMMIT_TOOL_SWEEP_TARGET`      | `*(unset)*`                   | Optional second sweep: cwd = this package root. Same venv. Omit or `OFF` for no target.                                                                                  |
 
 Relative paths for `PROJECT_SOURCE_DIR` / `PROJECT_BINARY_DIR` / `PRE_COMMIT_VENV_DIR` are resolved against
 `CMAKE_SOURCE_DIR`, `CMAKE_BINARY_DIR`, and `PROJECT_SOURCE_DIR` respectively, matching CMake’s usual behavior.

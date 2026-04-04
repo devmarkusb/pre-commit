@@ -19,6 +19,7 @@ One drawback: the custom commit hook won't work properly for code
 changes within submodules. To help a bit with that, repos
 typically developed as submodules can be configured to get
 their own sweep target at least, see PRE_COMMIT_TOOL_SWEEP_TARGET.
+You also must do `add_subdirectory` for them though.
 
 ## Usage, quick start
 

@@ -90,6 +90,11 @@ Pass **`PRE_COMMIT_TOOL_SWEEP_TARGET <name>`** to register a second `add_custom_
 command as above, but with working directory set to **this** checkout. **Omit the argument** if you do not need that
 target; `OFF` means the same as omitting it.
 
+If **`PROJECT_SOURCE_DIR` is already this checkout** (top-level use of this repo) **and** the main sweep target is
+enabled, the tool sweep is **not** added—Configure prints a short status and the main sweep is enough. If you set
+`PRE_COMMIT_SWEEP_TARGET OFF` but still pass `PRE_COMMIT_TOOL_SWEEP_TARGET`, you get **one** sweep for this tree (the
+tool target only).
+
 Example:
 
 ```cmake
@@ -122,9 +127,9 @@ On **CMake configure**, `mb_pre_commit_setup()` can:
   `CMAKE_SOURCE_DIR`).
 - Register a **`mb-pre-commit-sweep`** CMake target that runs **pre-commit on all files**
   (`pre-commit run --all-files`) from `PROJECT_SOURCE_DIR` (see above).
-- Optionally, register **another** sweep target (`PRE_COMMIT_TOOL_SWEEP_TARGET`) that runs the same command from **this
-  package’s root** (parent of `cmake/`); see **Optional: sweep this package’s checkout** under [Run pre-commit on all
-  files](#run-pre-commit-on-all-files-mb-pre-commit-sweep).
+- Optionally, register **another** sweep target (`PRE_COMMIT_TOOL_SWEEP_TARGET`) when **this** checkout is not the same
+  tree as `PROJECT_SOURCE_DIR` (or when the main sweep is off); see **Optional: sweep this package’s checkout** under
+  [Run pre-commit on all files](#run-pre-commit-on-all-files-mb-pre-commit-sweep).
 
 If the tree is not a normal Git checkout (no `.git` or `.git/hooks`), setup is **skipped** with a status
 message—configure still succeeds.
@@ -148,7 +153,7 @@ This project’s CMake module uses APIs that require **CMake 3.21+** (`file(COPY
 | `PRE_COMMIT_VENV_DIR`               | `${PROJECT_SOURCE_DIR}/.venv` | Virtualenv path; `Scripts/python.exe` on Windows, `bin/python3` otherwise.                                                                                               |
 | `PRE_COMMIT_INSTALL_EXAMPLE_CONFIG` | `ON`                          | When `ON`, copies the best matching `configs/vN/.pre-commit-config.yaml` to `${PROJECT_SOURCE_DIR}/.pre-commit-config.yaml` on each configure (overwrites).              |
 | `PRE_COMMIT_SWEEP_TARGET`           | `mb-pre-commit-sweep`         | Name of the `add_custom_target` that runs `pre-commit run --all-files`. Set to `OFF` to skip. If the default name is taken, the target is `mb_pre_commit_sweep` instead. |
-| `PRE_COMMIT_TOOL_SWEEP_TARGET`      | `*(unset)*`                   | Optional second sweep: cwd = this package root. Same venv. Omit or `OFF` for no target.                                                                                  |
+| `PRE_COMMIT_TOOL_SWEEP_TARGET`      | `*(unset)*`                   | Second sweep at this package root when `PROJECT_SOURCE_DIR` is elsewhere; same venv. If it matches the main sweep tree, ignored. Omit/`OFF`: none.                       |
 
 Relative paths for `PROJECT_SOURCE_DIR` / `PROJECT_BINARY_DIR` / `PRE_COMMIT_VENV_DIR` are resolved against
 `CMAKE_SOURCE_DIR`, `CMAKE_BINARY_DIR`, and `PROJECT_SOURCE_DIR` respectively, matching CMake’s usual behavior.

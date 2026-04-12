@@ -43,6 +43,13 @@ Or without CMake:
 ./python/mb-pre-commit-setup.py
 ```
 
+If you want to call the newest `clang-format` already cached by `pre-commit`
+directly, use:
+
+```bash
+./python/mb-pre-commit-clang-format.py --version
+```
+
 ### What it does, and alternative setup
 
 `FetchContent_MakeAvailable` runs this dependency’s root [`CMakeLists.txt`](CMakeLists.txt), which pulls in

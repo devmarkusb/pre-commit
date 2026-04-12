@@ -91,6 +91,11 @@ function(mb_pre_commit_setup)
         "${_tool_module_dir}/../python/mb-pre-commit-setup.py"
         ABSOLUTE
     )
+    get_filename_component(
+        _clang_format_wrapper_script
+        "${_tool_module_dir}/../python/mb-pre-commit-clang-format.py"
+        ABSOLUTE
+    )
 
     if(NOT EXISTS "${_setup_script}")
         message(
@@ -98,12 +103,22 @@ function(mb_pre_commit_setup)
             "mb_pre_commit_setup: setup script not found: ${_setup_script}"
         )
     endif()
+    if(NOT EXISTS "${_clang_format_wrapper_script}")
+        message(
+            FATAL_ERROR
+            "mb_pre_commit_setup: clang-format wrapper not found: ${_clang_format_wrapper_script}"
+        )
+    endif()
 
     # Re-run configure if the hook template or shipped example configs change.
     set_property(
         DIRECTORY
         APPEND
-        PROPERTY CMAKE_CONFIGURE_DEPENDS "${_hook_template}" "${_setup_script}"
+        PROPERTY
+            CMAKE_CONFIGURE_DEPENDS
+                "${_hook_template}"
+                "${_setup_script}"
+                "${_clang_format_wrapper_script}"
     )
     # CONFIGURE_DEPENDS registers these files with the build tool so CMake re-runs when
     # they change. Do not also append them to CMAKE_CONFIGURE_DEPENDS — that duplicates
@@ -147,10 +162,22 @@ function(mb_pre_commit_setup)
     endif()
 
     if(WIN32)
+        set(_venv_bin_dir "${PC_PRE_COMMIT_VENV_DIR}/Scripts")
         set(_venv_python "${PC_PRE_COMMIT_VENV_DIR}/Scripts/python.exe")
+        set(_clang_format_launcher
+            "${_venv_bin_dir}/mb-pre-commit-clang-format.cmd"
+        )
     else()
+        set(_venv_bin_dir "${PC_PRE_COMMIT_VENV_DIR}/bin")
         set(_venv_python "${PC_PRE_COMMIT_VENV_DIR}/bin/python3")
+        set(_clang_format_launcher
+            "${_venv_bin_dir}/mb-pre-commit-clang-format"
+        )
     endif()
+    message(
+        STATUS
+        "pre-commit clang-format: ${_clang_format_launcher}  (installed by mb-pre-commit-setup.py; wraps newest clang-format cached by pre-commit)"
+    )
 
     # One-word build target: pre-commit on the whole tree (not just staged files).
     if(NOT PC_PRE_COMMIT_SWEEP_TARGET STREQUAL "OFF")

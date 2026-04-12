@@ -84,6 +84,12 @@ def _venv_python_path(venv_dir: Path) -> Path:
     return venv_dir / "bin" / "python3"
 
 
+def _venv_bin_dir(venv_dir: Path) -> Path:
+    if os.name == "nt":
+        return venv_dir / "Scripts"
+    return venv_dir / "bin"
+
+
 def _venv_site_packages(venv_dir: Path) -> Path:
     """Purelib site-packages inside an existing venv (POSIX vs Windows layout)."""
     if os.name == "nt":
@@ -206,6 +212,19 @@ def _copy_if_different(src: Path, dst: Path) -> bool:
     if dst.exists() and src.read_bytes() == dst.read_bytes():
         return False
     shutil.copyfile(src, dst)
+    return True
+
+
+def _write_text_if_different(dst: Path, text: str, *, newline: str) -> bool:
+    """Write text only when content differs. Returns True if a write occurred."""
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    if dst.exists():
+        try:
+            if dst.read_text(encoding="utf-8") == text:
+                return False
+        except OSError:
+            pass
+    dst.write_text(text, encoding="utf-8", newline=newline)
     return True
 
 
@@ -372,6 +391,54 @@ def _install_native_hook(project_source: Path, venv_python: Path) -> None:
     _status(f"Installed native pre-commit hook in {project_source}")
 
 
+def _sh_single_quote(value: str) -> str:
+    return "'" + value.replace("'", "'\"'\"'") + "'"
+
+
+def _cmd_quote(value: str) -> str:
+    return value.replace("%", "%%")
+
+
+def _clang_format_wrapper_path(tool_root: Path) -> Path:
+    return (tool_root.parent / "python" / "mb-pre-commit-clang-format.py").resolve()
+
+
+def _clang_format_launcher_path(venv_dir: Path) -> Path:
+    bindir = _venv_bin_dir(venv_dir)
+    if os.name == "nt":
+        return bindir / "mb-pre-commit-clang-format.cmd"
+    return bindir / "mb-pre-commit-clang-format"
+
+
+def _install_clang_format_launcher(tool_root: Path, venv_dir: Path, venv_python: Path) -> Path:
+    wrapper = _clang_format_wrapper_path(tool_root)
+    if not wrapper.is_file():
+        _fatal(f"mb_pre_commit_setup: clang-format wrapper not found: {wrapper}")
+
+    launcher = _clang_format_launcher_path(venv_dir)
+    if os.name == "nt":
+        text = (
+            "@echo off\r\n"
+            f"\"{_cmd_quote(str(venv_python))}\" "
+            f"\"{_cmd_quote(str(wrapper))}\" %*\r\n"
+        )
+        wrote = _write_text_if_different(launcher, text, newline="\r\n")
+    else:
+        text = (
+            "#!/usr/bin/env sh\n"
+            f"exec {_sh_single_quote(str(venv_python))} "
+            f"{_sh_single_quote(str(wrapper))} \"$@\"\n"
+        )
+        wrote = _write_text_if_different(launcher, text, newline="\n")
+        _chmod_exec_unix(launcher)
+
+    if wrote:
+        _status(f"Installed clang-format launcher: {launcher}")
+    else:
+        _status(f"clang-format launcher already available: {launcher}")
+    return launcher
+
+
 def _parse_major(version: str) -> int:
     m = _MAJOR_PREFIX_RE.match(version.strip())
     if not m:
@@ -475,6 +542,7 @@ def run(
     )
     _ensure_venv(python_for_venv, venv_dir, venv_python)
     _ensure_pre_commit(venv_python, venv_dir, pre_commit_version)
+    _install_clang_format_launcher(tool_root, venv_dir, venv_python)
 
     git_exe = _which_git()
     assert git_exe  # guarded by _git_ok

@@ -43,12 +43,19 @@ Or without CMake:
 ./python/mb-pre-commit-setup.py
 ```
 
-If you want to call the newest `clang-format` already cached by `pre-commit`
-directly, use:
+After `mb_pre_commit_setup()` (or the standalone setup script) creates the
+project-local venv, it also installs a stable launcher there for the newest
+`clang-format` already cached by `pre-commit`:
 
 ```bash
-./python/mb-pre-commit-clang-format.py --version
+./.venv/bin/mb-pre-commit-clang-format --version
 ```
+
+On Windows, use `.venv\Scripts\mb-pre-commit-clang-format.cmd`.
+
+The repo-local wrapper script still exists at
+`./python/mb-pre-commit-clang-format.py`, but the venv launcher is the more
+convenient interface for consumers using CMake / `FetchContent`.
 
 ### What it does, and alternative setup
 

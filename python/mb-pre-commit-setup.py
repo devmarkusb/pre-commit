@@ -51,7 +51,9 @@ def _safe_rmtree(path: Path) -> None:
         except OSError as e2:
             raise exc from e2
 
-    def _onerror(func: object, apath: str, exc_info: tuple[type, BaseException, object]) -> None:
+    def _onerror(
+        func: object, apath: str, exc_info: tuple[type, BaseException, object]
+    ) -> None:
         _onexc(func, apath, exc_info[1])  # type: ignore[arg-type]
 
     try:
@@ -63,7 +65,9 @@ def _safe_rmtree(path: Path) -> None:
         pass
     if os.path.exists(p):
         if os.name != "nt":
-            subprocess.run(["/bin/chmod", "-R", "u+w", p], check=False, capture_output=True)
+            subprocess.run(
+                ["/bin/chmod", "-R", "u+w", p], check=False, capture_output=True
+            )
             subprocess.run(["/bin/rm", "-rf", p], check=False)
         else:
             subprocess.run(
@@ -410,7 +414,9 @@ def _clang_format_launcher_path(venv_dir: Path) -> Path:
     return bindir / "mb-pre-commit-clang-format"
 
 
-def _install_clang_format_launcher(tool_root: Path, venv_dir: Path, venv_python: Path) -> Path:
+def _install_clang_format_launcher(
+    tool_root: Path, venv_dir: Path, venv_python: Path
+) -> Path:
     wrapper = _clang_format_wrapper_path(tool_root)
     if not wrapper.is_file():
         _fatal(f"mb_pre_commit_setup: clang-format wrapper not found: {wrapper}")
@@ -419,15 +425,15 @@ def _install_clang_format_launcher(tool_root: Path, venv_dir: Path, venv_python:
     if os.name == "nt":
         text = (
             "@echo off\r\n"
-            f"\"{_cmd_quote(str(venv_python))}\" "
-            f"\"{_cmd_quote(str(wrapper))}\" %*\r\n"
+            f'"{_cmd_quote(str(venv_python))}" '
+            f'"{_cmd_quote(str(wrapper))}" %*\r\n'
         )
         wrote = _write_text_if_different(launcher, text, newline="\r\n")
     else:
         text = (
             "#!/usr/bin/env sh\n"
             f"exec {_sh_single_quote(str(venv_python))} "
-            f"{_sh_single_quote(str(wrapper))} \"$@\"\n"
+            f'{_sh_single_quote(str(wrapper))} "$@"\n'
         )
         wrote = _write_text_if_different(launcher, text, newline="\n")
         _chmod_exec_unix(launcher)
@@ -484,9 +490,7 @@ def _install_example_configs(
     best_n, best_src = picked
     dest = project_source / ".pre-commit-config.yaml"
     shutil.copyfile(best_src, dest)
-    _status(
-        f"Installed example pre-commit config (configs/v{best_n}) -> {dest}"
-    )
+    _status(f"Installed example pre-commit config (configs/v{best_n}) -> {dest}")
     md_src = best_src.parent / ".markdownlint.yaml"
     if md_src.is_file():
         md_dest = project_source / ".markdownlint.yaml"
@@ -624,9 +628,7 @@ def main(argv: list[str] | None = None) -> int:
     args = _build_arg_parser().parse_args(argv)
 
     tool_root = (
-        Path(args.tool_root).resolve()
-        if args.tool_root
-        else _default_tool_root()
+        Path(args.tool_root).resolve() if args.tool_root else _default_tool_root()
     )
     python_for_venv = (
         Path(args.python_for_venv).resolve()

@@ -32,7 +32,7 @@ def main() -> int:
             "(`git tag -d TAG`) or push again when the network is healthy."
         )
     )
-    p.add_argument("tag", help='e.g. v1.2.0')
+    p.add_argument("tag", help="e.g. v1.2.0")
     p.add_argument(
         "--no-push",
         action="store_true",

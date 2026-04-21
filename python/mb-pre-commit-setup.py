@@ -194,13 +194,32 @@ def _which_git() -> str | None:
     return shutil.which("git")
 
 
+def _git_hooks_dir(project_source: Path, git_exe: str) -> Path | None:
+    """Resolve the effective hooks directory, including Git worktrees."""
+    r = subprocess.run(
+        [git_exe, "rev-parse", "--git-path", "hooks"],
+        cwd=str(project_source),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if r.returncode != 0:
+        return None
+    raw = (r.stdout or "").strip()
+    if raw == "":
+        return None
+    hooks = Path(raw)
+    if not hooks.is_absolute():
+        hooks = (project_source / hooks).resolve()
+    return hooks
+
+
 def _git_ok(project_source: Path) -> bool:
     git = _which_git()
     if not git:
         return False
-    git_dir = project_source / ".git"
-    hooks_dir = git_dir / "hooks"
-    return git_dir.is_dir() and hooks_dir.is_dir()
+    hooks_dir = _git_hooks_dir(project_source, git)
+    return hooks_dir is not None and hooks_dir.is_dir()
 
 
 def _resolve_path(p: str | Path, base: Path) -> Path:
@@ -370,7 +389,10 @@ def _install_custom_hook(
             "(As it wouldn't make sense to install something that won't be used.)\n"
             "Hint: `git config --unset-all core.hooksPath`"
         )
-    hook_target = project_source / ".git" / "hooks" / "pre-commit"
+    hooks_dir = _git_hooks_dir(project_source, git_exe)
+    if hooks_dir is None:
+        _fatal(f"Could not resolve Git hooks directory in {project_source}")
+    hook_target = hooks_dir / "pre-commit"
     _copy_if_different(generated_hook, hook_target)
     _chmod_exec_unix(hook_target)
     _status(f"Installed custom pre-commit hook: {hook_target}")

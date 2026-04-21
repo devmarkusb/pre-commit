@@ -140,15 +140,15 @@ On **CMake configure**, `mb_pre_commit_setup()` can:
 - Ensure a **project-local Python venv** exists (default: `<project>/.venv`).
 - **Pin and install** the `pre-commit` package with pip (`PRE_COMMIT_VERSION`, default `4.5.1`), upgrading only when the
   version does not match.
-- Install a **Git `pre-commit` hook** under `.git/hooks/` in the project you point at (`PROJECT_SOURCE_DIR`, default
-  `CMAKE_SOURCE_DIR`).
+- Install a **Git `pre-commit` hook** into the effective hooks directory reported by Git (works for normal checkouts and
+  worktrees) in the project you point at (`PROJECT_SOURCE_DIR`, default `CMAKE_SOURCE_DIR`).
 - Register a **`mb-pre-commit-sweep`** CMake target that runs **pre-commit on all files**
   (`pre-commit run --all-files`) from `PROJECT_SOURCE_DIR` (see above).
 - Optionally, register **another** sweep target (`PRE_COMMIT_TOOL_SWEEP_TARGET`) when **this** checkout is not the same
   tree as `PROJECT_SOURCE_DIR` (or when the main sweep is off); see **Optional: sweep this package’s checkout** under
   [Run pre-commit on all files](#run-pre-commit-on-all-files-mb-pre-commit-sweep).
 
-If the tree is not a normal Git checkout (no `.git` or `.git/hooks`), setup is **skipped** with a status
+If the tree is not a Git checkout (or Git cannot resolve a hooks directory there), setup is **skipped** with a status
 message—configure still succeeds.
 
 **Requirements:** `find_package(Python3 REQUIRED COMPONENTS Interpreter)` must succeed (used to create the venv). Git
@@ -179,8 +179,9 @@ Relative paths for `PROJECT_SOURCE_DIR` / `PROJECT_BINARY_DIR` / `PRE_COMMIT_VEN
 
 ### `CUSTOM` (default)
 
-CMake **configures** `cmake/pre-commit.in` into `${PROJECT_BINARY_DIR}/pre-commit`, then **copies** it to
-`${PROJECT_SOURCE_DIR}/.git/hooks/pre-commit` when the content differs. On non-Windows hosts the hook is marked
+CMake **configures** `cmake/pre-commit.in` into `${PROJECT_BINARY_DIR}/pre-commit`, then **copies** it to the hooks
+directory from `git rev-parse --git-path hooks` (for example `${PROJECT_SOURCE_DIR}/.git/hooks/pre-commit`) when the
+content differs. On non-Windows hosts the hook is marked
 executable.
 
 The hook is a small Bash script that:

@@ -62,7 +62,9 @@ def _iter_repo_dirs(cache_root: Path) -> list[Path]:
     if not cache_root.is_dir():
         return []
     return sorted(
-        child for child in cache_root.iterdir() if child.is_dir() and child.name.startswith("repo")
+        child
+        for child in cache_root.iterdir()
+        if child.is_dir() and child.name.startswith("repo")
     )
 
 
@@ -109,7 +111,11 @@ def _iter_executables(repo_dir: Path) -> list[Path]:
     for child in sorted(repo_dir.iterdir()):
         if not child.is_dir() or not child.name.startswith("py_env-"):
             continue
-        for rel in ("bin/clang-format", "Scripts/clang-format.exe", "Scripts/clang-format"):
+        for rel in (
+            "bin/clang-format",
+            "Scripts/clang-format.exe",
+            "Scripts/clang-format",
+        ):
             candidate = child / rel
             if candidate.is_file():
                 executables.append(candidate)

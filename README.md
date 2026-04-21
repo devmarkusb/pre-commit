@@ -15,6 +15,8 @@ By default, you get pre-commit behavior without annoying
 failing commits (except markdown or things not fixable automatically)
 and manual amends or separate formatting commits.
 
+The shipped example config also includes Python hooks (ruff + pyupgrade).
+
 One drawback: the custom commit hook won't work properly for code
 changes within submodules. To help a bit with that, repos
 typically developed as submodules can be configured to get

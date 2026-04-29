@@ -511,8 +511,14 @@ def _install_example_configs(
         return
     best_n, best_src = picked
     dest = project_source / ".pre-commit-config.yaml"
-    shutil.copyfile(best_src, dest)
-    _status(f"Installed example pre-commit config (configs/v{best_n}) -> {dest}")
+    if dest.exists() and dest.samefile(best_src):
+        _status(
+            f"Example pre-commit config already present at {dest} "
+            f"(same file as {best_src}); skipping copy"
+        )
+    else:
+        shutil.copyfile(best_src, dest)
+        _status(f"Installed example pre-commit config (configs/v{best_n}) -> {dest}")
     md_src = best_src.parent / ".markdownlint.yaml"
     if md_src.is_file():
         md_dest = project_source / ".markdownlint.yaml"

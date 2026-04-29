@@ -168,7 +168,7 @@ This project’s CMake module uses APIs that require **CMake 3.21+** (`file(COPY
 | `PRE_COMMIT_MODE`                   | `CUSTOM`                      | `CUSTOM` or `NATIVE` (see below).                                                                                                                                        |
 | `PRE_COMMIT_VERSION`                | `4.5.1`                       | Exact `pre-commit` version installed in the venv via pip.                                                                                                                |
 | `PRE_COMMIT_VENV_DIR`               | `${PROJECT_SOURCE_DIR}/.venv` | Virtualenv path; `Scripts/python.exe` on Windows, `bin/python3` otherwise.                                                                                               |
-| `PRE_COMMIT_INSTALL_EXAMPLE_CONFIG` | `ON`                          | When `ON`, copies the best matching `configs/vN/.pre-commit-config.yaml` to `${PROJECT_SOURCE_DIR}/.pre-commit-config.yaml` on each configure (overwrites).              |
+| `PRE_COMMIT_INSTALL_EXAMPLE_CONFIG` | `ON`                          | When `ON`, refreshes `.pre-commit-config.yaml` from the best matching `configs/vN/...` on configure; skipped if unchanged.                                               |
 | `PRE_COMMIT_SWEEP_TARGET`           | `mb-pre-commit-sweep`         | Name of the `add_custom_target` that runs `pre-commit run --all-files`. Set to `OFF` to skip. If the default name is taken, the target is `mb_pre_commit_sweep` instead. |
 | `PRE_COMMIT_TOOL_SWEEP_TARGET`      | `*(unset)*`                   | Second sweep at this package root when `PROJECT_SOURCE_DIR` is elsewhere; same venv. If it matches the main sweep tree, ignored. Omit/`OFF`: none.                       |
 
@@ -203,8 +203,9 @@ venv. You get upstream’s installed hook and default behavior instead of the cu
 ## Contributing and releases
 
 The canonical example hook list for packaging is [`configs/v4/.pre-commit-config.yaml`](configs/v4/.pre-commit-config.yaml).
-The copy at the repository root is kept **byte-identical** (CI fails on drift) so local `pre-commit` runs and packaged
-configs stay aligned; edit `configs/v4/` first, then sync the root file.
+In **this** repository, the root [`.pre-commit-config.yaml`](.pre-commit-config.yaml) is a **symlink** to that file so
+Dependabot (configured for `configs/v4`) and local `pre-commit` stay aligned; CI still runs `cmp` against the resolved
+content. **Consumer projects** still get a normal file copy from CMake. Edit `configs/v4/` only.
 
 Maintainers can create an annotated release tag and push it to `origin` with [`scripts/git-tag`](scripts/git-tag): it
 refuses a dirty working tree or an existing tag, then runs `git tag -a` with message `Release <tag>` and `git push

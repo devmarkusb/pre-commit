@@ -276,13 +276,18 @@ function(mb_pre_commit_setup_subdirectory)
     )
 
     if(NOT SUBPC_PRE_COMMIT_SWEEP_TARGET)
-        set(SUBPC_PRE_COMMIT_SWEEP_TARGET "mb-pre-commit-sweep-${CMAKE_PROJECT_NAME}")
+        set(SUBPC_PRE_COMMIT_SWEEP_TARGET
+            "mb-pre-commit-sweep-${CMAKE_PROJECT_NAME}"
+        )
     endif()
 
     set(_sub_setup_args
-        PROJECT_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-        PROJECT_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}"
-        PRE_COMMIT_SWEEP_TARGET "${SUBPC_PRE_COMMIT_SWEEP_TARGET}"
+        PROJECT_SOURCE_DIR
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        PROJECT_BINARY_DIR
+        "${CMAKE_CURRENT_BINARY_DIR}"
+        PRE_COMMIT_SWEEP_TARGET
+        "${SUBPC_PRE_COMMIT_SWEEP_TARGET}"
     )
     list(APPEND _sub_setup_args ${SUBPC_UNPARSED_ARGUMENTS})
 
@@ -292,8 +297,7 @@ function(mb_pre_commit_setup_subdirectory)
         list(APPEND _sub_setup_args PRE_COMMIT_INSTALL_EXAMPLE_CONFIG OFF)
     else()
         list(
-            APPEND
-            _sub_setup_args
+            APPEND _sub_setup_args
             PRE_COMMIT_INSTALL_EXAMPLE_CONFIG
             "${SUBPC_PRE_COMMIT_INSTALL_EXAMPLE_CONFIG}"
         )

@@ -266,27 +266,32 @@ endfunction()
 # Uses CMAKE_CURRENT_SOURCE_DIR/BINARY_DIR instead of the top-level CMAKE_SOURCE_DIR so Git
 # hooks and .venv land in the submodule tree. Commits inside that submodule then run this
 # hook; the parent's mb_pre_commit_setup() does not apply there.
-function(mb_pre_commit_setup_subdirectory)
-    cmake_parse_arguments(
-        SUBPC
-        ""
-        "PRE_COMMIT_SWEEP_TARGET;PRE_COMMIT_INSTALL_EXAMPLE_CONFIG"
-        ""
-        ${ARGN}
+function(_mb_pre_commit_setup_subdirectory_impl)
+    set(options)
+    set(oneValueArgs
+        CALLER_LIST_DIR
+        CALLER_SOURCE_DIR
+        CALLER_BINARY_DIR
+        PRE_COMMIT_SWEEP_TARGET
+        PRE_COMMIT_INSTALL_EXAMPLE_CONFIG
     )
+    cmake_parse_arguments(SUBPC "${options}" "${oneValueArgs}" "" ${ARGN})
+
+    if(
+        NOT SUBPC_CALLER_LIST_DIR
+        OR NOT SUBPC_CALLER_SOURCE_DIR
+        OR NOT SUBPC_CALLER_BINARY_DIR
+    )
+        message(
+            FATAL_ERROR
+            "_mb_pre_commit_setup_subdirectory_impl: internal caller paths missing"
+        )
+    endif()
 
     if(NOT SUBPC_PRE_COMMIT_SWEEP_TARGET)
-        # CMAKE_PROJECT_NAME is always the top-level project(); nested add_subdirectory
-        # trees need PROJECT_NAME or the source dir leaf so targets do not collide.
-        if(PROJECT_NAME AND NOT PROJECT_NAME STREQUAL CMAKE_PROJECT_NAME)
-            set(_subpc_sweep_id "${PROJECT_NAME}")
-        else()
-            get_filename_component(
-                _subpc_sweep_id
-                "${CMAKE_CURRENT_SOURCE_DIR}"
-                NAME
-            )
-        endif()
+        # Do not use PROJECT_NAME or CMAKE_PROJECT_NAME: in a function they may not reflect
+        # the caller's directory scope (PROJECT_NAME inherits the top-level project() name).
+        get_filename_component(_subpc_sweep_id "${SUBPC_CALLER_LIST_DIR}" NAME)
         set(SUBPC_PRE_COMMIT_SWEEP_TARGET
             "mb-pre-commit-sweep-${_subpc_sweep_id}"
         )
@@ -294,9 +299,9 @@ function(mb_pre_commit_setup_subdirectory)
 
     set(_sub_setup_args
         PROJECT_SOURCE_DIR
-        "${CMAKE_CURRENT_SOURCE_DIR}"
+        "${SUBPC_CALLER_SOURCE_DIR}"
         PROJECT_BINARY_DIR
-        "${CMAKE_CURRENT_BINARY_DIR}"
+        "${SUBPC_CALLER_BINARY_DIR}"
         PRE_COMMIT_SWEEP_TARGET
         "${SUBPC_PRE_COMMIT_SWEEP_TARGET}"
     )
@@ -316,3 +321,17 @@ function(mb_pre_commit_setup_subdirectory)
 
     mb_pre_commit_setup(${_sub_setup_args})
 endfunction()
+
+# Macro so CMAKE_CURRENT_* are read at the call site (the submodule CMakeLists.txt), not
+# inside a function scope where PROJECT_NAME can still be the top-level project() name.
+macro(mb_pre_commit_setup_subdirectory)
+    _mb_pre_commit_setup_subdirectory_impl(
+        CALLER_LIST_DIR
+        "${CMAKE_CURRENT_LIST_DIR}"
+        CALLER_SOURCE_DIR
+        "${CMAKE_CURRENT_SOURCE_DIR}"
+        CALLER_BINARY_DIR
+        "${CMAKE_CURRENT_BINARY_DIR}"
+        ${ARGN}
+    )
+endmacro()

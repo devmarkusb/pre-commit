@@ -1,0 +1,8 @@
+---
+description: mb-pre-commit repository agent instructions
+alwaysApply: true
+---
+
+Follow **AGENTS.md** at the repository root for build/test/lint commands, directory layout, and edit restrictions.
+
+Do not duplicate long policy here—update AGENTS.md when repo conventions change.

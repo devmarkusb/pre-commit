@@ -17,11 +17,15 @@ and manual amends or separate formatting commits.
 
 The shipped example config also includes Python hooks (ruff + pyupgrade).
 
-One drawback: the custom commit hook won't work properly for code
-changes within submodules. To help a bit with that, repos
-typically developed as submodules can be configured to get
-their own sweep target at least, see PRE_COMMIT_TOOL_SWEEP_TARGET.
-You also must do `add_subdirectory` for them though.
+One drawback: the **parent** project's `mb_pre_commit_setup()` hook does not run when you
+commit **inside a Git submodule** (Git uses that submodule's own `.git` and hooks). Give each
+submodule its own setup with **`mb_pre_commit_setup_subdirectory()`** from that submodule's
+`CMakeLists.txt` (after `add_subdirectory` includes it). The parent still needs `mb_pre_commit`
+in its FetchContent lockfile so the function exists. Each tree gets its own `.venv` and
+`pre-commit` hook under its source root.
+
+`PRE_COMMIT_TOOL_SWEEP_TARGET` is different: it adds a sweep target for **this mb-pre-commit
+package checkout** in `_deps`, not for an arbitrary consumer submodule.
 
 ## Usage, quick start
 
@@ -38,6 +42,17 @@ FetchContent_MakeAvailable(mb_pre_commit)
 
 mb_pre_commit_setup()
 ```
+
+**Submodule (e.g. `devenv/`):** in the submodule's `CMakeLists.txt`, after the parent has loaded
+`mb-pre-commit.cmake` via its lockfile:
+
+```cmake
+mb_pre_commit_setup_subdirectory(PRE_COMMIT_INSTALL_EXAMPLE_CONFIG OFF)
+```
+
+That installs hooks and a sweep target named `mb-pre-commit-sweep-<CMAKE_PROJECT_NAME>`
+(e.g. `mb-pre-commit-sweep-devenv`) so it does not clash with the parent's
+`mb-pre-commit-sweep`.
 
 Or without CMake:
 
@@ -171,6 +186,13 @@ This project’s CMake module uses APIs that require **CMake 3.21+** (`file(COPY
 | `PRE_COMMIT_INSTALL_EXAMPLE_CONFIG` | `ON`                          | When `ON`, refreshes `.pre-commit-config.yaml` from the best matching `configs/vN/...` on configure; skipped if unchanged.                                               |
 | `PRE_COMMIT_SWEEP_TARGET`           | `mb-pre-commit-sweep`         | Name of the `add_custom_target` that runs `pre-commit run --all-files`. Set to `OFF` to skip. If the default name is taken, the target is `mb_pre_commit_sweep` instead. |
 | `PRE_COMMIT_TOOL_SWEEP_TARGET`      | `*(unset)*`                   | Second sweep at this package root when `PROJECT_SOURCE_DIR` is elsewhere; same venv. If it matches the main sweep tree, ignored. Omit/`OFF`: none.                       |
+
+### `mb_pre_commit_setup_subdirectory`
+
+Same options as `mb_pre_commit_setup`, but **`PROJECT_SOURCE_DIR`** / **`PROJECT_BINARY_DIR`** default to
+**`CMAKE_CURRENT_SOURCE_DIR`** / **`CMAKE_CURRENT_BINARY_DIR`** (the project whose `CMakeLists.txt`
+calls it), and **`PRE_COMMIT_INSTALL_EXAMPLE_CONFIG`** defaults to **`OFF`** unless you set it.
+**`PRE_COMMIT_SWEEP_TARGET`** defaults to `mb-pre-commit-sweep-${CMAKE_PROJECT_NAME}`.
 
 Relative paths for `PROJECT_SOURCE_DIR` / `PROJECT_BINARY_DIR` / `PRE_COMMIT_VENV_DIR` are resolved against
 `CMAKE_SOURCE_DIR`, `CMAKE_BINARY_DIR`, and `PROJECT_SOURCE_DIR` respectively, matching CMake’s usual behavior.

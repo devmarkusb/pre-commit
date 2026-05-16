@@ -261,3 +261,43 @@ function(mb_pre_commit_setup)
         endif()
     endif()
 endfunction()
+
+# Install pre-commit for the CMake project that calls this (e.g. devenv as add_subdirectory).
+# Uses CMAKE_CURRENT_SOURCE_DIR/BINARY_DIR instead of the top-level CMAKE_SOURCE_DIR so Git
+# hooks and .venv land in the submodule tree. Commits inside that submodule then run this
+# hook; the parent's mb_pre_commit_setup() does not apply there.
+function(mb_pre_commit_setup_subdirectory)
+    cmake_parse_arguments(
+        SUBPC
+        ""
+        "PRE_COMMIT_SWEEP_TARGET;PRE_COMMIT_INSTALL_EXAMPLE_CONFIG"
+        ""
+        ${ARGN}
+    )
+
+    if(NOT SUBPC_PRE_COMMIT_SWEEP_TARGET)
+        set(SUBPC_PRE_COMMIT_SWEEP_TARGET "mb-pre-commit-sweep-${CMAKE_PROJECT_NAME}")
+    endif()
+
+    set(_sub_setup_args
+        PROJECT_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
+        PROJECT_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}"
+        PRE_COMMIT_SWEEP_TARGET "${SUBPC_PRE_COMMIT_SWEEP_TARGET}"
+    )
+    list(APPEND _sub_setup_args ${SUBPC_UNPARSED_ARGUMENTS})
+
+    # Submodule trees usually ship their own .pre-commit-config.yaml; do not overwrite unless
+    # the caller passes PRE_COMMIT_INSTALL_EXAMPLE_CONFIG explicitly.
+    if(NOT DEFINED SUBPC_PRE_COMMIT_INSTALL_EXAMPLE_CONFIG)
+        list(APPEND _sub_setup_args PRE_COMMIT_INSTALL_EXAMPLE_CONFIG OFF)
+    else()
+        list(
+            APPEND
+            _sub_setup_args
+            PRE_COMMIT_INSTALL_EXAMPLE_CONFIG
+            "${SUBPC_PRE_COMMIT_INSTALL_EXAMPLE_CONFIG}"
+        )
+    endif()
+
+    mb_pre_commit_setup(${_sub_setup_args})
+endfunction()

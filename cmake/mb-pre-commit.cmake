@@ -5,6 +5,18 @@ include_guard(GLOBAL)
 # which breaks paths like ${_dir}/pre-commit.in -> /pre-commit.in.
 set(_MB_PRE_COMMIT_CMAKE_DIR "${CMAKE_CURRENT_LIST_DIR}")
 
+# Force TOP_LEVEL vs SUBDIRECTORY setup in tests/CI; default AUTO uses CMAKE_SOURCE_DIR vs
+# CMAKE_CURRENT_SOURCE_DIR (see mb_pre_commit_setup_project).
+set(MB_PRE_COMMIT_SETUP_LAYOUT
+    AUTO
+    CACHE STRING
+    "mb-pre-commit layout: AUTO, TOP_LEVEL, or SUBDIRECTORY"
+)
+set_property(
+    CACHE MB_PRE_COMMIT_SETUP_LAYOUT
+    PROPERTY STRINGS AUTO TOP_LEVEL SUBDIRECTORY
+)
+
 function(mb_pre_commit_setup)
     set(options)
     set(oneValueArgs
@@ -334,4 +346,34 @@ macro(mb_pre_commit_setup_subdirectory)
         "${CMAKE_CURRENT_BINARY_DIR}"
         ${ARGN}
     )
+endmacro()
+
+# Pick mb_pre_commit_setup() vs mb_pre_commit_setup_subdirectory() for the calling tree.
+# Uses CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR (not PROJECT_IS_TOP_LEVEL): in an
+# add_subdirectory() tree without its own project(), PROJECT_IS_TOP_LEVEL stays ON even though
+# hooks and .venv must be installed in the submodule directory.
+#
+# Optional cache MB_PRE_COMMIT_SETUP_LAYOUT: AUTO (default), TOP_LEVEL, or SUBDIRECTORY — useful
+# in tests/CI to force a layout without restructuring the CMake tree.
+macro(mb_pre_commit_setup_project)
+    if(MB_PRE_COMMIT_SETUP_LAYOUT STREQUAL "TOP_LEVEL")
+        mb_pre_commit_setup(${ARGN})
+    elseif(MB_PRE_COMMIT_SETUP_LAYOUT STREQUAL "SUBDIRECTORY")
+        mb_pre_commit_setup_subdirectory(${ARGN})
+    elseif(
+        MB_PRE_COMMIT_SETUP_LAYOUT STREQUAL ""
+        OR MB_PRE_COMMIT_SETUP_LAYOUT STREQUAL "AUTO"
+    )
+        if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+            mb_pre_commit_setup(${ARGN})
+        else()
+            mb_pre_commit_setup_subdirectory(${ARGN})
+        endif()
+    else()
+        message(
+            FATAL_ERROR
+            "mb_pre_commit_setup_project: MB_PRE_COMMIT_SETUP_LAYOUT='${MB_PRE_COMMIT_SETUP_LAYOUT}' "
+            "must be AUTO, TOP_LEVEL, or SUBDIRECTORY"
+        )
+    endif()
 endmacro()

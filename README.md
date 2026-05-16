@@ -40,19 +40,24 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(mb_pre_commit)
 
-mb_pre_commit_setup()
+mb_pre_commit_setup_project()
 ```
 
-**Submodule (e.g. `devenv/`):** in the submodule's `CMakeLists.txt`, after the parent has loaded
-`mb-pre-commit.cmake` via its lockfile:
+Use the same one-liner in a **submodule** `CMakeLists.txt` (e.g. `devenv/`): it calls
+`mb_pre_commit_setup()` at the top level and `mb_pre_commit_setup_subdirectory()` under
+`add_subdirectory()`. Submodule trees usually pass `PRE_COMMIT_INSTALL_EXAMPLE_CONFIG OFF`
+if they ship their own `.pre-commit-config.yaml`:
 
 ```cmake
-mb_pre_commit_setup_subdirectory(PRE_COMMIT_INSTALL_EXAMPLE_CONFIG OFF)
+mb_pre_commit_setup_project(PRE_COMMIT_INSTALL_EXAMPLE_CONFIG OFF)
 ```
 
 That installs hooks and a sweep target named `mb-pre-commit-sweep-<dir>` where `<dir>` is
 the basename of the directory containing the calling `CMakeLists.txt` (e.g.
 `mb-pre-commit-sweep-devenv`) so it does not clash with the parent's `mb-pre-commit-sweep`.
+
+To call the top-level or subdirectory setup explicitly, use `mb_pre_commit_setup()` or
+`mb_pre_commit_setup_subdirectory()` instead.
 
 Or without CMake:
 
@@ -186,6 +191,19 @@ This project’s CMake module uses APIs that require **CMake 3.21+** (`file(COPY
 | `PRE_COMMIT_INSTALL_EXAMPLE_CONFIG` | `ON`                          | When `ON`, refreshes `.pre-commit-config.yaml` from the best matching `configs/vN/...` on configure; skipped if unchanged.                                               |
 | `PRE_COMMIT_SWEEP_TARGET`           | `mb-pre-commit-sweep`         | Name of the `add_custom_target` that runs `pre-commit run --all-files`. Set to `OFF` to skip. If the default name is taken, the target is `mb_pre_commit_sweep` instead. |
 | `PRE_COMMIT_TOOL_SWEEP_TARGET`      | `*(unset)*`                   | Second sweep at this package root when `PROJECT_SOURCE_DIR` is elsewhere; same venv. If it matches the main sweep tree, ignored. Omit/`OFF`: none.                       |
+
+### `mb_pre_commit_setup_project`
+
+Dispatches to `mb_pre_commit_setup()` or `mb_pre_commit_setup_subdirectory()` using
+**`CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR`**. Prefer this over
+`if(PROJECT_IS_TOP_LEVEL)`: in an `add_subdirectory()` tree **without** its own `project()`,
+`PROJECT_IS_TOP_LEVEL` stays `ON` even though hooks must be installed in the submodule directory.
+
+Accepts the same arguments as `mb_pre_commit_setup()` / `mb_pre_commit_setup_subdirectory()`;
+defaults follow whichever path is chosen (e.g. example config `ON` at top level, `OFF` in a submodule).
+
+Cache **`MB_PRE_COMMIT_SETUP_LAYOUT`**: `AUTO` (default), `TOP_LEVEL`, or `SUBDIRECTORY` — force a
+layout in tests/CI without changing the CMake tree (`cmake -DMB_PRE_COMMIT_SETUP_LAYOUT=SUBDIRECTORY …`).
 
 ### `mb_pre_commit_setup_subdirectory`
 

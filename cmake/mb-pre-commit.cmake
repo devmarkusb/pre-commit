@@ -276,8 +276,19 @@ function(mb_pre_commit_setup_subdirectory)
     )
 
     if(NOT SUBPC_PRE_COMMIT_SWEEP_TARGET)
+        # CMAKE_PROJECT_NAME is always the top-level project(); nested add_subdirectory
+        # trees need PROJECT_NAME or the source dir leaf so targets do not collide.
+        if(PROJECT_NAME AND NOT PROJECT_NAME STREQUAL CMAKE_PROJECT_NAME)
+            set(_subpc_sweep_id "${PROJECT_NAME}")
+        else()
+            get_filename_component(
+                _subpc_sweep_id
+                "${CMAKE_CURRENT_SOURCE_DIR}"
+                NAME
+            )
+        endif()
         set(SUBPC_PRE_COMMIT_SWEEP_TARGET
-            "mb-pre-commit-sweep-${CMAKE_PROJECT_NAME}"
+            "mb-pre-commit-sweep-${_subpc_sweep_id}"
         )
     endif()
 

@@ -50,9 +50,10 @@ mb_pre_commit_setup()
 mb_pre_commit_setup_subdirectory(PRE_COMMIT_INSTALL_EXAMPLE_CONFIG OFF)
 ```
 
-That installs hooks and a sweep target named `mb-pre-commit-sweep-<CMAKE_PROJECT_NAME>`
-(e.g. `mb-pre-commit-sweep-devenv`) so it does not clash with the parent's
-`mb-pre-commit-sweep`.
+That installs hooks and a sweep target named `mb-pre-commit-sweep-<id>` where `<id>` is
+this tree's `project()` name when it differs from the top-level project, otherwise the
+source directory name (e.g. `mb-pre-commit-sweep-devenv`) so it does not clash with the
+parent's `mb-pre-commit-sweep`.
 
 Or without CMake:
 
@@ -192,7 +193,9 @@ This project’s CMake module uses APIs that require **CMake 3.21+** (`file(COPY
 Same options as `mb_pre_commit_setup`, but **`PROJECT_SOURCE_DIR`** / **`PROJECT_BINARY_DIR`** default to
 **`CMAKE_CURRENT_SOURCE_DIR`** / **`CMAKE_CURRENT_BINARY_DIR`** (the project whose `CMakeLists.txt`
 calls it), and **`PRE_COMMIT_INSTALL_EXAMPLE_CONFIG`** defaults to **`OFF`** unless you set it.
-**`PRE_COMMIT_SWEEP_TARGET`** defaults to `mb-pre-commit-sweep-${CMAKE_PROJECT_NAME}`.
+**`PRE_COMMIT_SWEEP_TARGET`** defaults to `mb-pre-commit-sweep-<id>`: this tree's
+`PROJECT_NAME` when it is not the top-level `CMAKE_PROJECT_NAME`, otherwise the basename of
+`CMAKE_CURRENT_SOURCE_DIR`.
 
 Relative paths for `PROJECT_SOURCE_DIR` / `PROJECT_BINARY_DIR` / `PRE_COMMIT_VENV_DIR` are resolved against
 `CMAKE_SOURCE_DIR`, `CMAKE_BINARY_DIR`, and `PROJECT_SOURCE_DIR` respectively, matching CMake’s usual behavior.

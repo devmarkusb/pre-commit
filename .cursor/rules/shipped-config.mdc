@@ -1,0 +1,13 @@
+---
+description: Shipped pre-commit example under configs/v4
+globs:
+  - configs/**/*
+  - .pre-commit-config.yaml
+  - .markdownlint.yaml
+---
+
+Root `.pre-commit-config.yaml` is a **symlink** to `configs/v4/.pre-commit-config.yaml`. Edit hook versions and repos under `configs/v4/` only.
+
+CI enforces: `cmp -s configs/v4/.pre-commit-config.yaml .pre-commit-config.yaml`.
+
+See **AGENTS.md** for the full hook list and sweep command.

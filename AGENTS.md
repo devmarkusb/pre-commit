@@ -103,7 +103,7 @@ Edit hook versions in **`configs/v4/`** only, not by breaking the root symlink.
 - **Python:** stdlib-only in shipped scripts; type hints and `from __future__ import annotations` in `mb-pre-commit-setup.py`. **Ruff** + **pyupgrade** via pre-commit.
 - **Hook script:** Bash with `pipefail`; staged-files only; retries after re-stage on failure (CUSTOM mode).
 - **Docs:** README is the user-facing contract; keep `configs/v4` and README in sync when behavior changes.
-- **Releases:** Annotated tags via `./scripts/git-tag vX.Y.Z` (clean tree required).
+- **Releases:** Annotated tags via `./scripts/git-tag --bump patch|minor|major` or `./scripts/git-tag vX.Y.Z` (clean tree required).
 
 ## Testing expectations
 

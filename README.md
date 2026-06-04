@@ -251,10 +251,13 @@ content. **Consumer projects** still get a normal file copy from CMake. Edit `co
 
 Maintainers can create an annotated release tag and push it to `origin` with [`scripts/git-tag`](scripts/git-tag): it
 refuses a dirty working tree or an existing tag, then runs `git tag -a` with message `Release <tag>` and `git push
-origin <tag>` (use `--no-push` for a local tag only). Example:
+origin <tag>` (use `--no-push` for a local tag only). Pass an explicit tag or bump from the latest `vMAJOR.MINOR.PATCH`
+tag:
 
 ```bash
-./scripts/git-tag v1.2.0
+./scripts/git-tag --bump patch   # v3.0.0 -> v3.0.1
+./scripts/git-tag --bump minor   # v3.0.0 -> v3.1.0
+./scripts/git-tag v1.2.0         # explicit tag still works
 ```
 
 **Consumer projects:** this helper is not wired through CMake or FetchContent; it is a small standalone script (stdlib

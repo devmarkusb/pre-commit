@@ -18,8 +18,9 @@ repos:
 
     # Markdown linting
     # Config file: .markdownlint.yaml
+    # v0.44.0 is the last markdownlint-cli release that supports Node 18 (v0.46+ requires Node 20).
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.49.0
+    rev: v0.44.0
     hooks:
     - id: markdownlint
       args: [--fix]

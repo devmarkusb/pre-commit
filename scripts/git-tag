@@ -22,7 +22,7 @@ def _run_git(args: list[str], **kwargs) -> subprocess.CompletedProcess[str]:
 
 
 def _git_ok(args: list[str]) -> bool:
-    r = subprocess.run(["git", *args], capture_output=True)
+    r = subprocess.run(["git", *args], capture_output=True, check=False)
     return r.returncode == 0
 
 
